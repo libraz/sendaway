@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 432" width="960" height="432" role="img" aria-labelledby="sa-run-ja-t sa-run-ja-d">
+  <title id="sa-run-ja-t">sendaway を通るコマンドの流れ</title>
+  <desc id="sa-run-ja-d">左から右へ3つの区画。Mac では、ターミナルで打った、スクリプトが呼んだ、あるいは Claude Code や Codex が実行した make test などのコマンドが、PATH の先頭にある sendaway shim に届く。.sendaway.yml のルールが実行場所を決め、どのルールにも一致しないか local: が優先するときは本物のバイナリがローカルで動く。リモートに一致すると実行直前の同期に進む。送るファイルは git が決め、追跡中のファイルと、無視されていない未追跡ファイルが対象になる。秘密らしいファイルは送らず、残りを rsync が一方向に、ビルドホスト上の同じ絶対パスへコピーする。Linux のビルドホストでは、remote-exec がプロジェクト単位のロックを取り、ローカルで消したファイルを削除する。prepare は監視対象のファイルが変わったときだけ動き、コマンドは専用のプロセスグループでログインシェル経由で実行される。実行中は出力フレームが、終了後は終了コードが Mac に戻る。exit 0 のときは pull: のパスが、ネイティブバイナリとアーカイブを拒否するマジックバイト検査を通ってから戻る。Mac から見た出力と終了コードはローカル実行と同じになる。</desc>
+
+  <style>
+    .bg   { fill:#f6f7f9 }
+    .grp  { fill:#eceef2 }
+    .chip { fill:#ffffff; stroke:#d5d9e0 }
+    .card { fill:#ffffff; stroke:#2b6cb0 }
+    .alt  { fill:#ffffff; stroke:#2a7f6f }
+    rect.warn { fill:#ffffff; stroke:#a3401f }
+    path.warn { fill:none; stroke:#a3401f; stroke-width:1.4 }
+    .rule { fill:none; stroke:#c3c8d0; stroke-width:1 }
+    .seam { fill:none; stroke:#c3c8d0; stroke-dasharray:6 5 }
+    .ln   { fill:none; stroke:#2b6cb0; stroke-width:1.4 }
+    .ah   { fill:#2b6cb0 }
+    .ln2  { fill:none; stroke:#2a7f6f; stroke-width:1.4 }
+    .ah2  { fill:#2a7f6f }
+    .lnd  { fill:none; stroke:#2b6cb0; stroke-width:1.2; stroke-dasharray:4 3 }
+    text  { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h    { font-size:12.5px }
+    .hb   { font-size:12.5px; font-weight:600 }
+    .lbl  { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s    { font-size:10.5px; fill:#6e7781 }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#2b6cb0 }
+    .hm   { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px }
+    .code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    .warnt { fill:#a3401f }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#7fb3d5} .alt{fill:#161b22;stroke:#6fc2ae}
+      rect.warn{fill:#161b22;stroke:#e08a68} path.warn{stroke:#e08a68}
+      .rule{stroke:#484f58} .seam{stroke:#484f58}
+      .ln{stroke:#7fb3d5} .ah{fill:#7fb3d5} .ln2{stroke:#6fc2ae} .ah2{fill:#6fc2ae} .lnd{stroke:#7fb3d5}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e} .mono{fill:#7fb3d5} .warnt{fill:#e08a68}
+    }
+  </style>
+  <defs>
+    <marker id="sa-run-ja-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-run-ja-a2" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="960" height="432" rx="12"/>
+
+  <!-- panels -->
+  <rect class="grp" x="24" y="40" width="288" height="338" rx="10"/>
+  <rect class="grp" x="336" y="40" width="288" height="262" rx="10"/>
+  <rect class="grp" x="648" y="40" width="288" height="338" rx="10"/>
+  <text class="lbl" x="40" y="62">Mac</text>
+  <text class="lbl" x="352" y="62">実行直前の同期</text>
+  <text class="lbl" x="664" y="62">ビルドホスト（Linux）</text>
+
+  <!-- connectors, drawn under the boxes -->
+  <path class="ln" d="M168,134 V152" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M168,210 V228" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M296,181 H324 V105 H352" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M480,134 V152" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M480,210 V228" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M608,257 H636 V105 H664" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M792,134 V152" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln" d="M792,210 V228" marker-end="url(#sa-run-ja-a)"/>
+  <path class="ln2" d="M792,286 V304" marker-end="url(#sa-run-ja-a2)"/>
+  <path class="ln2" d="M664,333 H296" marker-end="url(#sa-run-ja-a2)"/>
+  <text class="s" x="176" y="223">ローカル</text>
+  <text class="s" x="800" y="299">exit 0</text>
+  <text class="s" x="480" y="325" text-anchor="middle">実行中は出力フレーム、終了後に終了コード</text>
+  <text class="s" x="480" y="348" text-anchor="middle">exit 0 のあとに pull: のファイル</text>
+
+  <!-- Mac -->
+  <rect class="chip" x="40" y="76" width="256" height="58" rx="7"/>
+  <text class="hm" x="52" y="96">make test</text>
+  <text class="s" x="52" y="112">ターミナル、スクリプト、</text>
+  <text class="s" x="52" y="125">Claude Code、Codex から</text>
+  <rect class="card" x="40" y="152" width="256" height="58" rx="7"/>
+  <text class="lbl" x="50" y="172">1</text>
+  <text class="h" x="66" y="172">sendaway shim</text>
+  <text class="s" x="66" y="188">PATH の先頭に置かれる</text>
+  <text class="s" x="66" y="201">.sendaway.yml でリモートか判定</text>
+  <rect class="chip" x="40" y="228" width="256" height="58" rx="7"/>
+  <text class="h" x="52" y="248">本物のバイナリをローカルで</text>
+  <text class="s" x="52" y="264">どのルールにも一致しないか、</text>
+  <text class="s" x="52" y="277">local: が優先したとき</text>
+  <rect class="alt" x="40" y="304" width="256" height="58" rx="7"/>
+  <text class="lbl" x="50" y="324">9</text>
+  <text class="h" x="66" y="324">ローカル実行と同じ結果</text>
+  <text class="s" x="66" y="340">stdout と stderr を順序どおりに</text>
+  <text class="s" x="66" y="353">続いて終了コード</text>
+
+  <!-- sync -->
+  <rect class="card" x="352" y="76" width="256" height="58" rx="7"/>
+  <text class="lbl" x="362" y="96">2</text>
+  <text class="h" x="378" y="96">git が決めるファイル集合</text>
+  <text class="s" x="378" y="112">追跡中のファイルと、</text>
+  <text class="s" x="378" y="125">無視されていない未追跡ファイル</text>
+  <rect class="warn" x="352" y="152" width="256" height="58" rx="7"/>
+  <text class="lbl" x="362" y="172">3</text>
+  <text class="h" x="378" y="172">秘密ファイルの除外</text>
+  <text class="s" x="378" y="188">.env・鍵・認証情報・</text>
+  <text class="s" x="378" y="201">トークン入り .npmrc は送らない</text>
+  <rect class="card" x="352" y="228" width="256" height="58" rx="7"/>
+  <text class="lbl" x="362" y="248">4</text>
+  <text class="h" x="378" y="248">rsync（一方向）</text>
+  <text class="s" x="378" y="264">ビルドホスト上の</text>
+  <text class="s" x="378" y="277">同じ絶対パスへ</text>
+
+  <!-- build host -->
+  <rect class="card" x="664" y="76" width="256" height="58" rx="7"/>
+  <text class="lbl" x="674" y="96">5</text>
+  <text class="h" x="690" y="96">remote-exec</text>
+  <text class="s" x="690" y="112">プロジェクト単位のロックを取得</text>
+  <text class="s" x="690" y="125">ローカルで消したファイルを削除</text>
+  <rect class="card" x="664" y="152" width="256" height="58" rx="7"/>
+  <text class="lbl" x="674" y="172">6</text>
+  <text class="h" x="690" y="172">prepare</text>
+  <text class="s" x="690" y="188">when: のファイルが変わったときだけ</text>
+  <text class="s" x="690" y="201">実行（yarn.lock など）</text>
+  <rect class="card" x="664" y="228" width="256" height="58" rx="7"/>
+  <text class="lbl" x="674" y="248">7</text>
+  <text class="h" x="690" y="248">コマンド本体</text>
+  <text class="s" x="690" y="264">専用のプロセスグループで</text>
+  <text class="s" x="690" y="277">ログインシェル経由で実行</text>
+  <rect class="alt" x="664" y="304" width="256" height="58" rx="7"/>
+  <text class="lbl" x="674" y="324">8</text>
+  <text class="h" x="690" y="324">pull（exit 0 のとき）</text>
+  <text class="s" x="690" y="340">ファイルごとにマジックバイト検査</text>
+  <text class="s" x="690" y="353">ネイティブバイナリ・アーカイブは拒否</text>
+  <path class="seam" d="M40,394 H920"/>
+  <text class="s" x="480.0" y="416" text-anchor="middle">ローカル実行と同じ出力と終了コード。送るのは git が列挙するものだけで、ネイティブバイナリは戻らない。</text>
+</svg>

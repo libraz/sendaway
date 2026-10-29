@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 578" width="960" height="578" role="img" aria-labelledby="sa-trust-t sa-trust-d">
+  <title id="sa-trust-t">What crosses to the build host, and what never does</title>
+  <desc id="sa-trust-d">The Mac is on the left, the build host on the right, and a dashed vertical line between them is the boundary. Sent to the host: the source files git lists, the .git objects, refs and index, the allowlisted environment variables plus names listed under env:, and argv. On the host these become a working copy at the same absolute path and the command's environment. Never sent: secret-like files such as .env, keys and an .npmrc holding a token; .git/config, whose remote URLs can carry tokens; FETCH_HEAD, hooks and logs; environment variables with secret-like names; LANG and LC_* that sshd would accept; and ssh agent, X11 and port forwarding. On the host the child environment is built from scratch, the ssh command line turns forwarding off, and .git/config is written fresh with no remotes. Coming back: stdout and stderr as frames in order, the exit code or fatal signal, pull paths on exit 0 and artifacts on failure. Files whose magic bytes mark them as ELF, Mach-O, PE, ar or an archive are refused before they cross.</desc>
+
+  <style>
+    .bg   { fill:#f6f7f9 }
+    .grp  { fill:#eceef2 }
+    .chip { fill:#ffffff; stroke:#d5d9e0 }
+    .card { fill:#ffffff; stroke:#2b6cb0 }
+    .alt  { fill:#ffffff; stroke:#2a7f6f }
+    rect.warn { fill:#ffffff; stroke:#a3401f }
+    path.warn { fill:none; stroke:#a3401f; stroke-width:1.4 }
+    .rule { fill:none; stroke:#c3c8d0; stroke-width:1 }
+    .seam { fill:none; stroke:#c3c8d0; stroke-dasharray:6 5 }
+    .ln   { fill:none; stroke:#2b6cb0; stroke-width:1.4 }
+    .ah   { fill:#2b6cb0 }
+    .ln2  { fill:none; stroke:#2a7f6f; stroke-width:1.4 }
+    .ah2  { fill:#2a7f6f }
+    .lnd  { fill:none; stroke:#2b6cb0; stroke-width:1.2; stroke-dasharray:4 3 }
+    text  { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h    { font-size:12.5px }
+    .hb   { font-size:12.5px; font-weight:600 }
+    .lbl  { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s    { font-size:10.5px; fill:#6e7781 }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#2b6cb0 }
+    .hm   { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px }
+    .code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    .warnt { fill:#a3401f }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#7fb3d5} .alt{fill:#161b22;stroke:#6fc2ae}
+      rect.warn{fill:#161b22;stroke:#e08a68} path.warn{stroke:#e08a68}
+      .rule{stroke:#484f58} .seam{stroke:#484f58}
+      .ln{stroke:#7fb3d5} .ah{fill:#7fb3d5} .ln2{stroke:#6fc2ae} .ah2{fill:#6fc2ae} .lnd{stroke:#7fb3d5}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e} .mono{fill:#7fb3d5} .warnt{fill:#e08a68}
+    }
+  </style>
+  <defs>
+    <marker id="sa-trust-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-trust-a2" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="960" height="578" rx="12"/>
+  <text class="hb" x="240.0" y="34" text-anchor="middle">Mac</text>
+  <text class="hb" x="720.0" y="34" text-anchor="middle">build host</text>
+  <text class="lbl" x="480" y="34" text-anchor="middle">boundary</text>
+
+  <!-- band: sent -->
+  <rect class="grp" x="24" y="52" width="432" height="120" rx="10"/>
+  <rect class="grp" x="504" y="52" width="432" height="120" rx="10"/>
+  <text class="lbl" x="40" y="70">sent to the host</text>
+  <text class="lbl" x="520" y="70">arrives as</text>
+  <rect class="card" x="40" y="80" width="196" height="38" rx="7"/>
+  <text class="h" x="52" y="96">source files</text>
+  <text class="s" x="52" y="112">only what git lists</text>
+  <rect class="card" x="244" y="80" width="196" height="38" rx="7"/>
+  <text class="h" x="256" y="96">.git data</text>
+  <text class="s" x="256" y="112">objects, refs and the index</text>
+  <rect class="card" x="40" y="122" width="196" height="38" rx="7"/>
+  <text class="h" x="52" y="138">environment</text>
+  <text class="s" x="52" y="154">allowlist, plus env: names</text>
+  <rect class="card" x="244" y="122" width="196" height="38" rx="7"/>
+  <text class="h" x="256" y="138">argv</text>
+  <text class="s" x="256" y="154">the command line as given</text>
+  <rect class="chip" x="520" y="80" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="96">working copy</text>
+  <text class="s" x="532" y="112">at the same absolute path</text>
+  <rect class="chip" x="520" y="122" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="138">command environment</text>
+  <text class="s" x="532" y="154">only the forwarded names</text>
+  <path class="ln" d="M456,120 H504" marker-end="url(#sa-trust-a)"/>
+
+  <!-- band: never sent -->
+  <rect class="grp" x="24" y="184" width="432" height="162" rx="10"/>
+  <rect class="grp" x="504" y="184" width="432" height="162" rx="10"/>
+  <text class="lbl warnt" x="40" y="202">never sent</text>
+  <text class="lbl" x="520" y="202">held off on the host side too</text>
+  <rect class="warn" x="40" y="212" width="196" height="38" rx="7"/>
+  <text class="h" x="52" y="228">secret-like files</text>
+  <text class="s" x="52" y="244">.env, keys, tokened .npmrc</text>
+  <rect class="warn" x="244" y="212" width="196" height="38" rx="7"/>
+  <text class="h" x="256" y="228">.git/config</text>
+  <text class="s" x="256" y="244">remote URLs can hold tokens</text>
+  <rect class="warn" x="40" y="254" width="196" height="38" rx="7"/>
+  <text class="h" x="52" y="270">other .git state</text>
+  <text class="s" x="52" y="286">FETCH_HEAD, hooks, logs</text>
+  <rect class="warn" x="244" y="254" width="196" height="38" rx="7"/>
+  <text class="h" x="256" y="270">secret-named env vars</text>
+  <text class="s" x="256" y="286">TOKEN, SECRET, AWS_, …</text>
+  <rect class="warn" x="40" y="296" width="196" height="38" rx="7"/>
+  <text class="h" x="52" y="312">LANG, LC_*</text>
+  <text class="s" x="52" y="328">even when sshd accepts them</text>
+  <rect class="warn" x="244" y="296" width="196" height="38" rx="7"/>
+  <text class="h" x="256" y="312">agent, X11, ports</text>
+  <text class="s" x="256" y="328">forwarding is never opened</text>
+  <rect class="chip" x="520" y="212" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="228">child environment</text>
+  <text class="s" x="532" y="244">built from scratch, not inherited from sshd</text>
+  <rect class="chip" x="520" y="254" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="270">ssh command line</text>
+  <text class="s" x="532" y="286">ForwardAgent=no, ForwardX11=no, ClearAllForwardings=yes</text>
+  <rect class="chip" x="520" y="296" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="312">.git/config on the host</text>
+  <text class="s" x="532" y="328">written fresh, with no remotes</text>
+  <path class="warn" d="M456,273 H474 M474,266 V280"/>
+
+  <!-- band: comes back -->
+  <rect class="grp" x="24" y="358" width="432" height="162" rx="10"/>
+  <rect class="grp" x="504" y="358" width="432" height="162" rx="10"/>
+  <text class="lbl" x="40" y="376">comes back</text>
+  <text class="lbl" x="520" y="376">sent back</text>
+  <rect class="alt" x="520" y="386" width="196" height="38" rx="7"/>
+  <text class="h" x="532" y="402">stdout, stderr</text>
+  <text class="s" x="532" y="418">framed, order kept</text>
+  <rect class="alt" x="724" y="386" width="196" height="38" rx="7"/>
+  <text class="h" x="736" y="402">exit code</text>
+  <text class="s" x="736" y="418">or the fatal signal</text>
+  <rect class="alt" x="520" y="428" width="196" height="38" rx="7"/>
+  <text class="h" x="532" y="444">pull: paths</text>
+  <text class="s" x="532" y="460">copied back on exit 0</text>
+  <rect class="alt" x="724" y="428" width="196" height="38" rx="7"/>
+  <text class="h" x="736" y="444">artifacts:</text>
+  <text class="s" x="736" y="460">copied back on failure</text>
+  <rect class="warn" x="520" y="470" width="400" height="38" rx="7"/>
+  <text class="h" x="532" y="486">refused by magic bytes</text>
+  <text class="s" x="532" y="502">ELF, Mach-O, PE, ar and archive files never come back</text>
+  <rect class="alt" x="40" y="386" width="400" height="38" rx="7"/>
+  <text class="h" x="52" y="402">the caller</text>
+  <text class="s" x="52" y="418">same output and exit code as a local run</text>
+  <rect class="chip" x="40" y="428" width="400" height="38" rx="7"/>
+  <text class="h" x="52" y="444">working tree</text>
+  <text class="s" x="52" y="460">pulled files land in place</text>
+  <path class="ln2" d="M504,426 H456" marker-end="url(#sa-trust-a2)"/>
+  <path class="warn" d="M504,489 H486 M486,482 V496"/>
+
+  <!-- the boundary -->
+  <path class="seam" d="M480,44 V520"/>
+  <path class="seam" d="M40,536 H920"/>
+  <text class="s" x="480.0" y="558" text-anchor="middle">Only what git lists, the allowlisted variables and argv cross; output, the exit code and checked files come back.</text>
+</svg>

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" width="960" height="460" role="img" aria-labelledby="sa-hosts-t sa-hosts-d">
+  <title id="sa-hosts-t">Routing projects to separate build hosts</title>
+  <desc id="sa-hosts-d">Three projects on the Mac map to two build hosts. ~/Projects/big-repo matches a route and goes to build02. ~/Projects/foobar and ~/Projects/web match no route and go to the default host, build01; a route for ~/Projects/foo does not match ~/Projects/foobar, because paths are compared by whole components. Below, the two dotfiles that decide this: ~/.config/sendaway/config.yml holds the default host and the routes, where the longest path-component match wins, and ~/.ssh/config holds each host's address, user and key. Host names and addresses live in these dotfiles, not in any repository.</desc>
+
+  <style>
+    .bg   { fill:#f6f7f9 }
+    .grp  { fill:#eceef2 }
+    .chip { fill:#ffffff; stroke:#d5d9e0 }
+    .card { fill:#ffffff; stroke:#2b6cb0 }
+    .alt  { fill:#ffffff; stroke:#2a7f6f }
+    rect.warn { fill:#ffffff; stroke:#a3401f }
+    path.warn { fill:none; stroke:#a3401f; stroke-width:1.4 }
+    .rule { fill:none; stroke:#c3c8d0; stroke-width:1 }
+    .seam { fill:none; stroke:#c3c8d0; stroke-dasharray:6 5 }
+    .ln   { fill:none; stroke:#2b6cb0; stroke-width:1.4 }
+    .ah   { fill:#2b6cb0 }
+    .ln2  { fill:none; stroke:#2a7f6f; stroke-width:1.4 }
+    .ah2  { fill:#2a7f6f }
+    .lnd  { fill:none; stroke:#2b6cb0; stroke-width:1.2; stroke-dasharray:4 3 }
+    text  { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h    { font-size:12.5px }
+    .hb   { font-size:12.5px; font-weight:600 }
+    .lbl  { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s    { font-size:10.5px; fill:#6e7781 }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#2b6cb0 }
+    .hm   { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px }
+    .code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    .warnt { fill:#a3401f }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#7fb3d5} .alt{fill:#161b22;stroke:#6fc2ae}
+      rect.warn{fill:#161b22;stroke:#e08a68} path.warn{stroke:#e08a68}
+      .rule{stroke:#484f58} .seam{stroke:#484f58}
+      .ln{stroke:#7fb3d5} .ah{fill:#7fb3d5} .ln2{stroke:#6fc2ae} .ah2{fill:#6fc2ae} .lnd{stroke:#7fb3d5}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e} .mono{fill:#7fb3d5} .warnt{fill:#e08a68}
+    }
+  </style>
+  <defs>
+    <marker id="sa-hosts-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-hosts-a2" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="960" height="460" rx="12"/>
+
+  <!-- panels -->
+  <rect class="grp" x="24" y="36" width="300" height="168" rx="10"/>
+  <rect class="grp" x="636" y="36" width="300" height="168" rx="10"/>
+  <text class="lbl" x="40" y="56">projects on the Mac</text>
+  <text class="lbl" x="652" y="56">build hosts</text>
+
+  <!-- connectors -->
+  <path class="ln" d="M308,84 H652" marker-end="url(#sa-hosts-a)"/>
+  <path class="ln2" d="M308,128 H652" marker-end="url(#sa-hosts-a2)"/>
+  <path class="ln2" d="M308,172 H652" marker-end="url(#sa-hosts-a2)"/>
+  <text class="s" x="480" y="78" text-anchor="middle">route: ~/Projects/big-repo</text>
+  <text class="s" x="480" y="122" text-anchor="middle">no route: foo is not a prefix of foobar</text>
+  <text class="s" x="480" y="166" text-anchor="middle">no route matches</text>
+
+  <!-- projects -->
+  <rect class="chip" x="40" y="68" width="268" height="32" rx="7"/>
+  <text class="hm" x="52" y="88">~/Projects/big-repo</text>
+  <rect class="chip" x="40" y="112" width="268" height="32" rx="7"/>
+  <text class="hm" x="52" y="132">~/Projects/foobar</text>
+  <rect class="chip" x="40" y="156" width="268" height="32" rx="7"/>
+  <text class="hm" x="52" y="176">~/Projects/web</text>
+
+  <!-- hosts -->
+  <rect class="card" x="652" y="62" width="268" height="44" rx="7"/>
+  <text class="hb" x="664" y="80">build02</text>
+  <text class="s" x="664" y="96">from routes</text>
+  <rect class="alt" x="652" y="112" width="268" height="76" rx="7"/>
+  <text class="hb" x="664" y="130">build01</text>
+  <text class="s" x="664" y="146">the default host,</text>
+  <text class="s" x="664" y="159">host: in config.yml</text>
+
+  <!-- dotfiles -->
+  <rect class="grp" x="24" y="220" width="912" height="188" rx="10"/>
+  <text class="lbl" x="40" y="240">your dotfiles, not any repository</text>
+  <rect class="card" x="40" y="252" width="560" height="140" rx="7"/>
+  <text class="hm" x="52" y="272">~/.config/sendaway/config.yml</text>
+  <text class="code" x="52" y="292" xml:space="preserve">host: build01</text>
+  <text class="s" x="380" y="292"># default ssh alias</text>
+  <text class="code" x="52" y="306" xml:space="preserve">routes:</text>
+  <text class="s" x="380" y="306"># longest path-component match wins</text>
+  <text class="code" x="52" y="320" xml:space="preserve">  - path: ~/Projects/big-repo</text>
+  <text class="code" x="52" y="334" xml:space="preserve">    host: build02</text>
+  <text class="code" x="52" y="348" xml:space="preserve">  - path: ~/Projects/foo</text>
+  <text class="code" x="52" y="362" xml:space="preserve">    host: build02</text>
+  <text class="s" x="52" y="380">~/Projects/foo matches ~/Projects/foo/api, never ~/Projects/foobar</text>
+  <rect class="chip" x="652" y="252" width="268" height="60" rx="7"/>
+  <text class="hm" x="664" y="272">~/.ssh/config</text>
+  <text class="s" x="664" y="288">Host build01, Host build02:</text>
+  <text class="s" x="664" y="301">address, user and key</text>
+  <path class="lnd" d="M786,252 V188" marker-end="url(#sa-hosts-a)"/>
+  <text class="s" x="794" y="214">ssh resolves the alias</text>
+  <path class="seam" d="M40,424 H920"/>
+  <text class="s" x="480.0" y="446" text-anchor="middle">Host names and addresses live in your dotfiles, not in any repository.</text>
+</svg>
