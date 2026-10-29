@@ -17,7 +17,8 @@ import (
 	"github.com/libraz/sendaway/internal/sshx"
 )
 
-// Version is the sendaway version; release builds set it with -ldflags.
+// Version is set with -ldflags; left at "dev", the module version recorded
+// by go install or go build is reported instead.
 var Version = "dev"
 
 // commandName is the basename under which the binary acts as the command
@@ -67,7 +68,7 @@ func command(args []string, stdout, stderr *os.File) int {
 	case "help", "-h", "--help":
 		_, _ = io.WriteString(stdout, helpText)
 	case "version":
-		_, _ = fmt.Fprintf(stdout, "sendaway %s\nprotocol %d\n", Version, proto.Protocol)
+		_, _ = fmt.Fprintf(stdout, "sendaway %s\nprotocol %d\n", version(), proto.Protocol)
 	case "init":
 		err = initCmd(stdout, rest)
 	case "install-shims":
@@ -200,7 +201,7 @@ func resolveTarget(root string) (*target, error) {
 }
 
 func (t *target) params(p *project, stderr *os.File) run.Params {
-	return run.Params{Root: p.root, Host: t.host, Version: Version, Stderr: stderr, Transport: t.client}
+	return run.Params{Root: p.root, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client}
 }
 
 func joinWords(words []string) string { return "[" + strings.Join(words, ", ") + "]" }

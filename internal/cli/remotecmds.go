@@ -132,5 +132,5 @@ func shellArgv(c *sshx.Client, root string) ([]string, error) {
 }
 
 func remoteExec() error {
-	return (&remote.Server{Version: Version}).Serve(os.Stdin, os.Stdout)
+	return (&remote.Server{Version: version()}).Serve(os.Stdin, os.Stdout)
 }
