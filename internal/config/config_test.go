@@ -136,15 +136,15 @@ func TestUserConfig(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		src := "host: amz-build01\nroutes:\n  - path: ~/Projects/formulon\n    host: amz-build02\nssh_config: ~/.ssh/config\n"
+		src := "host: build01\nroutes:\n  - path: ~/Projects/formulon\n    host: build02\nssh_config: ~/.ssh/config\n"
 		file := writeFile(t, t.TempDir(), "config.yml", src)
 		u, err := LoadUser(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		want := &User{
-			Host:      "amz-build01",
-			Routes:    []Route{{Path: resolved, Host: "amz-build02"}},
+			Host:      "build01",
+			Routes:    []Route{{Path: resolved, Host: "build02"}},
 			SSHConfig: filepath.Join(home, ".ssh", "config"),
 		}
 		if !reflect.DeepEqual(u, want) {

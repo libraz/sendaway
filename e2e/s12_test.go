@@ -10,7 +10,7 @@ import (
 
 const (
 	// remoteToken stands in for a credential embedded in the origin URL.
-	remoteToken = "ghp_e2eRemoteUrlToken0123456789"
+	remoteToken = "e2e-remote-url-token-0123456789"
 	// langValue is sent by ssh through SendEnv LANG.
 	langValue = "fr_FR.UTF-8"
 )
@@ -30,7 +30,7 @@ func TestS12Secrets(t *testing.T) {
 	e.git("remote", "add", "origin", "https://x-access-token:"+remoteToken+"@github.com/example/repo.git")
 
 	r := e.sendawayEnv([]string{
-		"GITHUB_TOKEN=ghp_e2eEnvToken",
+		"GITHUB_TOKEN=e2e-env-token-value",
 		"SSH_AUTH_SOCK=/tmp/e2e-agent.sock",
 		"LANG=" + langValue,
 		"DEPLOY_TOKEN=deploy-secret",

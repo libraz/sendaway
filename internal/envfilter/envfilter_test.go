@@ -7,10 +7,10 @@ import (
 )
 
 func TestEnvForward(t *testing.T) {
-	const home = "/Users/libraz"
+	const home = "/Users/dev"
 	environ := []string{
 		"PATH=/usr/bin:/bin",
-		"HOME=/Users/libraz",
+		"HOME=/Users/dev",
 		"LANG=ja_JP.UTF-8",
 		"CI=true",
 		"MAKEFLAGS=-j4",
@@ -23,9 +23,9 @@ func TestEnvForward(t *testing.T) {
 		"SSH_AUTH_SOCK=/tmp/agent",
 		"TOOL=/opt/homebrew/bin/tool",
 		"LIBDIR=/Library/Frameworks",
-		"CACHE_DIR=/Users/libraz/.cache",
-		"DOTDIR=/Users/libraz/.config/x",
-		"WORK_DIR=/Users/libraz/work",
+		"CACHE_DIR=/Users/dev/.cache",
+		"DOTDIR=/Users/dev/.config/x",
+		"WORK_DIR=/Users/dev/work",
 		"TMP_DIR=/var/folders/zz/tmp",
 	}
 	requested := []string{
@@ -40,7 +40,7 @@ func TestEnvForward(t *testing.T) {
 		"MAKEFLAGS":   "-j4",
 		"TEST_FILTER": "unit",
 		"MYAPP_LEVEL": "3",
-		"WORK_DIR":    "/Users/libraz/work",
+		"WORK_DIR":    "/Users/dev/work",
 	}
 	if !maps.Equal(res.Env, wantEnv) {
 		t.Errorf("Env = %v, want %v", res.Env, wantEnv)
