@@ -7,9 +7,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](https://github.com/libraz/sendaway)
 [![Go Reference](https://pkg.go.dev/badge/github.com/libraz/sendaway.svg)](https://pkg.go.dev/github.com/libraz/sendaway)
 
-**sendaway は、重いビルドやテストのコマンドを、コマンドも呼び出し元も変えずに遠隔の Linux マシンで実行します。** PATH shim として動くので、自分で打った `make test` も、スクリプトも、Claude Code や Codex が呼んだ `make test` も、作業ツリーを同期して遠隔で走り、出力と終了コードをそのまま返します。
-
-単一の Go バイナリが、ファイル名に応じて shim か `sendaway` コマンドとして動きます。プロジェクトの導入は `.sendaway.yml` 1 つで、どの規則にも一致しないコマンドは手元でそのまま実行されます。
+**sendaway は、重いビルドやテストのコマンドを、コマンドも呼び出し元も変えずに遠隔の Linux マシンで実行します。** PATH shim として動くので、自分で打った `make test` も、スクリプトや Claude Code、Codex が呼んだ `make test` も、作業ツリーを同期して遠隔で走り、出力と終了コードをそのまま返します。プロジェクトの導入は `.sendaway.yml` 1 つで、どの規則にも一致しないコマンドは手元でそのまま実行されます。
 
 > **Status:** 1.0 未満です。`.sendaway.yml` のスキーマ、出力行、ワイヤプロトコルはリリース間で変わることがあります。第三者による監査は受けていません。
 
@@ -19,7 +17,7 @@
 - **手元と同じ結果** — stdout と stderr の順序、終了コード、致命的なシグナルが手元実行と同じ形で戻ります。Ctrl-C と SIGTERM は遠隔のプロセスグループを止めます。
 - **git で決まる同期** — 送るのは git が追跡する、または無視していないファイルです。秘密らしいファイル、`.git/config`、トークンを含む `.npmrc` の行は送りません。
 - **プロジェクトごとのホスト** — `~/.config/sendaway/config.yml` がプロジェクトのパスを ssh のホスト別名に対応づけます。ホスト名やアドレスはリポジトリに載りません。
-- **手元へのフォールバック** — ホストに届かないとき（名前解決失敗、タイムアウト、接続拒否）は、通知を出して手元で実行します。認証失敗とホスト鍵の不一致では落ちません。
+- **手元へのフォールバック** — ホストに届かないとき（名前解決失敗、タイムアウト、接続拒否）は、通知を出して手元で実行します。認証失敗とホスト鍵の不一致では手元に切り替えません。
 - **実行の記録** — 実行ごとに出力とメタデータを残し、`sendaway last` で直近の要約を見られます。
 
 ## インストール
@@ -28,9 +26,15 @@
 go install github.com/libraz/sendaway/cmd/sendaway@latest
 ```
 
-ビルドホストにも同じ版（Linux 用ビルド）を置きます。要件は Requirements を参照してください。`sendaway version` が版と protocol を表示し、両側の protocol が一致している必要があります。
+ビルドホストには、同じ版を Linux 用にビルドして `/usr/local/bin` に置きます。
 
-## セットアップ
+```sh
+GOOS=linux GOARCH=amd64 go build -o sendaway ./cmd/sendaway   # Arm のホストなら GOARCH=arm64
+```
+
+`sendaway version` が版と protocol を表示します。両側の protocol が一致している必要があります。
+
+## はじめに
 
 1. 最初に `ssh build01` を手で 1 回実行し、ホスト鍵を `known_hosts` に入れます。接続は `BatchMode` なので、ホスト鍵の確認が出ると失敗します。
 2. `~/.ssh/config` に `Host build01` を書き、アドレス、ユーザー、鍵を指定します。接続情報は ssh_config だけから読みます。
@@ -63,6 +67,17 @@ go install github.com/libraz/sendaway/cmd/sendaway@latest
 
 `sendaway which make test` は、コマンドの実行場所、ホスト、転送する変数を表示します。`sendaway run <cmd>` と `sendaway local <cmd>` は規則を無視します。`sendaway forget` はホスト上のプロジェクトのコピーと状態を消します。
 
+## ソースからビルド
+
+```sh
+make build    # bin/sendaway
+make test     # -race 付きの単体テスト、続けて起動時間の検査
+make lint     # golangci-lint と actionlint
+make e2e      # Docker の sshd に対する end-to-end テスト
+```
+
+バイナリ名は `sendaway` のままにしてください。別の名前で呼ぶと、その名前のコマンドの shim として動きます。
+
 ## 出力行と終了コード
 
 sendaway が足す行はすべて stderr に出ます（stdout と stderr が同じファイルなら同じファイルに出ます）。
@@ -81,17 +96,7 @@ sendaway が足す行はすべて stderr に出ます（stdout と stderr が同
 | シグナル死 | sendaway も同じシグナルで終了する |
 | 終了コード `125` | sendaway 自身の失敗。直前の行に理由がある |
 
-## ソースからビルド
-
-```sh
-make build    # bin/sendaway
-make test     # -race 付きの単体テスト、続けて起動時間の検査
-make e2e      # Docker の sshd に対する end-to-end テスト
-```
-
-バイナリ名は `sendaway` のままにしてください。別の名前で呼ぶと、その名前のコマンドの shim として動きます。
-
-## Requirements
+## 動作要件
 
 ビルドホスト（Linux）:
 
@@ -104,7 +109,7 @@ make e2e      # Docker の sshd に対する end-to-end テスト
 
 手元: Homebrew の rsync 3.x を PATH の先頭に置きます。macOS 標準は openrsync のためです。git と OpenSSH も必要です。
 
-## Limitations
+## 制限事項
 
 - 手元で始まった実行の子孫は手元に留まります。`local:` の規則やフォールバックで手元実行になると、プロセスツリー全体が Mac で動きます。
 - `MAKEFLAGS` や `CMAKE_BUILD_PARALLEL_LEVEL` などの並列度の変数は遠隔にも渡ります。Mac 向けに立てた `-j2` はホストでも有効です。何を転送し何を落としたかは `sendaway which` で確認できます。

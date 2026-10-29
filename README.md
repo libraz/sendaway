@@ -7,9 +7,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](https://github.com/libraz/sendaway)
 [![Go Reference](https://pkg.go.dev/badge/github.com/libraz/sendaway.svg)](https://pkg.go.dev/github.com/libraz/sendaway)
 
-**sendaway runs heavy build and test commands on a remote Linux machine, without changing the commands or the tools that call them.** It is a PATH shim: a `make test` typed by you, a script, Claude Code or Codex syncs the working tree, runs on the host, and returns the same output and exit code.
-
-One Go binary acts as the shim or as the `sendaway` command, chosen by its file name. A project opts in with one `.sendaway.yml`; commands that match no rule run locally, unchanged.
+**sendaway runs heavy build and test commands on a remote Linux machine, without changing the commands or the tools that call them.** It is a PATH shim: a `make test` typed by you, a script, Claude Code or Codex syncs the working tree, runs on the host, and returns the same output and exit code. A project opts in with one `.sendaway.yml`, and commands that match no rule run locally, unchanged.
 
 > **Status:** pre-1.0. The `.sendaway.yml` schema, the output lines and the wire protocol may change between releases. Not independently audited.
 
@@ -28,9 +26,15 @@ One Go binary acts as the shim or as the `sendaway` command, chosen by its file 
 go install github.com/libraz/sendaway/cmd/sendaway@latest
 ```
 
-Install the same version (Linux build) on the build host; see Requirements. `sendaway version` prints the version and protocol, and the two sides must agree on the protocol.
+The build host needs the same version built for Linux, in `/usr/local/bin`:
 
-## Setup
+```sh
+GOOS=linux GOARCH=amd64 go build -o sendaway ./cmd/sendaway   # GOARCH=arm64 for an Arm host
+```
+
+`sendaway version` prints the version and protocol; both sides must agree on the protocol.
+
+## Getting started
 
 1. Run `ssh build01` by hand once so the host key lands in `known_hosts`. Connections use `BatchMode`, and a host key prompt fails.
 2. Add a `Host build01` entry to `~/.ssh/config` with the address, user and key. sendaway reads connection details only from there.
@@ -63,6 +67,17 @@ Install the same version (Linux build) on the build host; see Requirements. `sen
 
 `sendaway which make test` shows where a command would run, the host and the forwarded variables. `sendaway run <cmd>` and `sendaway local <cmd>` ignore the rules. `sendaway forget` removes the project's copy and state from the host.
 
+## Build from source
+
+```sh
+make build    # bin/sendaway
+make test     # unit tests with -race, then startup-time checks
+make lint     # golangci-lint and actionlint
+make e2e      # end-to-end tests against a Docker sshd
+```
+
+The binary must stay named `sendaway`: under any other name it acts as a shim for that command.
+
 ## Output lines and exit codes
 
 Every line sendaway adds goes to stderr (the same file when stdout and stderr are one file).
@@ -80,16 +95,6 @@ Every line sendaway adds goes to stderr (the same file when stdout and stderr ar
 | exit `0`–`255` | The command's own exit code |
 | killed by signal | sendaway dies by the same signal |
 | exit `125` | sendaway itself failed; the preceding line gives the reason |
-
-## Build from source
-
-```sh
-make build    # bin/sendaway
-make test     # unit tests with -race, then startup-time checks
-make e2e      # end-to-end tests against a Docker sshd
-```
-
-The binary must stay named `sendaway`: under any other name it acts as a shim for that command.
 
 ## Requirements
 
