@@ -1,0 +1,12 @@
+# Build
+bin/
+/sendaway
+coverage.out
+
+# Local planning and agent tooling
+backup/
+.claude/
+.claude-*/
+.serena/
+CLAUDE.md
+AGENTS.md
