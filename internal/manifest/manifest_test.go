@@ -114,6 +114,24 @@ func TestManifestNegation(t *testing.T) {
 	}
 }
 
+func TestManifestTypeChange(t *testing.T) {
+	root := newRepo(t)
+	write(t, root, "flip/inner.txt", "i")
+	git(t, root, "add", "flip/inner.txt")
+	if err := os.RemoveAll(filepath.Join(root, "flip")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "flip", "now a file")
+
+	m, err := Build(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := m.Paths(), []string{"flip"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("paths = %q, want %q", got, want)
+	}
+}
+
 func TestManifestRejects(t *testing.T) {
 	t.Run("nested repo", func(t *testing.T) {
 		root := newRepo(t)

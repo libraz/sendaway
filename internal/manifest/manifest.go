@@ -12,11 +12,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -76,7 +78,8 @@ func Build(root string) (*Manifest, error) {
 			return nil, fmt.Errorf("nested git repository %q is not supported", p)
 		}
 		fi, err := os.Lstat(filepath.Join(root, filepath.FromSlash(p)))
-		if os.IsNotExist(err) {
+		// ENOTDIR: a tracked path whose parent directory was replaced by a file.
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 			continue
 		}
 		if err != nil {
