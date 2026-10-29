@@ -1,8 +1,12 @@
 // Command sendaway runs matched build and test commands on a remote Linux host.
 package main
 
-import "os"
+import (
+	"os"
+
+	"github.com/libraz/sendaway/internal/cli"
+)
 
 func main() {
-	os.Exit(2)
+	os.Exit(cli.Main(os.Args))
 }
