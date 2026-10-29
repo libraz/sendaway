@@ -9,16 +9,20 @@
 
 **sendaway は、重いビルドやテストのコマンドを、コマンドも呼び出し元も変えずに遠隔の Linux マシンで実行します。** PATH shim として動くので、自分で打った `make test` も、スクリプトや Claude Code、Codex が呼んだ `make test` も、作業ツリーを同期して遠隔で走り、出力と終了コードをそのまま返します。プロジェクトの導入は `.sendaway.yml` 1 つで、どの規則にも一致しないコマンドは手元でそのまま実行されます。
 
+📖 **[ドキュメント](https://github.com/libraz/sendaway/blob/main/docs/ja/introduction.md)** &nbsp;·&nbsp; **[はじめに](https://github.com/libraz/sendaway/blob/main/docs/ja/getting-started.md)** &nbsp;·&nbsp; **[ビルドホスト](https://github.com/libraz/sendaway/blob/main/docs/ja/build-host.md)**
+
 > **Status:** 1.0 未満です。`.sendaway.yml` のスキーマ、出力行、ワイヤプロトコルはリリース間で変わることがあります。第三者による監査は受けていません。
+
+![Mac の shim が受けたコマンドを、git が列挙するファイルとともにビルドホストへ同期して実行し、同じ出力と終了コードを返す流れ](docs/images/run-flow-ja.svg)
 
 ## できること
 
-- **透過的な振り分け** — `.sendaway.yml` の規則がコマンドラインに一致すると遠隔で実行します（`[make]`、`[go, test]`）。`local:` が `remote:` より優先されます。
-- **手元と同じ結果** — stdout と stderr の順序、終了コード、致命的なシグナルが手元実行と同じ形で戻ります。Ctrl-C と SIGTERM は遠隔のプロセスグループを止めます。
-- **git で決まる同期** — 送るのは git が追跡する、または無視していないファイルです。秘密らしいファイル、`.git/config`、トークンを含む `.npmrc` の行は送りません。
-- **プロジェクトごとのホスト** — `~/.config/sendaway/config.yml` がプロジェクトのパスを ssh のホスト別名に対応づけます。ホスト名やアドレスはリポジトリに載りません。
-- **手元へのフォールバック** — ホストに届かないとき（名前解決失敗、タイムアウト、接続拒否）は、通知を出して手元で実行します。認証失敗とホスト鍵の不一致では手元に切り替えません。
-- **実行の記録** — 実行ごとに出力とメタデータを残し、`sendaway last` で直近の要約を見られます。
+- **透過的な振り分け** — `.sendaway.yml` の規則がコマンドラインに一致すると遠隔で実行します（`[make]`、`[go, test]`）。`local:` が `remote:` より優先されます。[設定](https://github.com/libraz/sendaway/blob/main/docs/ja/configuration.md)
+- **手元と同じ結果** — stdout と stderr の順序、終了コード、致命的なシグナルが手元実行と同じ形で戻ります。Ctrl-C と SIGTERM は遠隔のプロセスグループを止めます。[動作の仕組み](https://github.com/libraz/sendaway/blob/main/docs/ja/how-it-works.md)
+- **git で決まる同期** — 送るのは git が追跡する、または無視していないファイルです。秘密らしいファイル、`.git/config`、トークンを含む `.npmrc` や `.yarnrc.yml` は送りません。[セキュリティ](https://github.com/libraz/sendaway/blob/main/docs/ja/security.md)
+- **プロジェクトごとのホスト** — `~/.config/sendaway/config.yml` がプロジェクトのパスを ssh のホスト別名に対応づけます。ホスト名やアドレスはリポジトリに載りません。[設定](https://github.com/libraz/sendaway/blob/main/docs/ja/configuration.md)
+- **手元へのフォールバック** — ホストに届かないとき（名前解決の失敗、タイムアウト、接続拒否、経路なし）は、通知を出して手元で実行します。認証失敗とホスト鍵の不一致では手元に切り替えません。[FAQ](https://github.com/libraz/sendaway/blob/main/docs/ja/faq.md)
+- **実行の記録** — 実行ごとに出力とメタデータを残し、`sendaway last` で直近の要約を見られます。[コマンドリファレンス](https://github.com/libraz/sendaway/blob/main/docs/ja/cli.md)
 
 ## インストール
 
@@ -94,7 +98,7 @@ sendaway が足す行はすべて stderr に出ます（stdout と stderr が同
 | `[sendaway] connection lost during run — result unknown` | 終了コード 125。コマンドは走った可能性がある |
 | 終了コード `0`〜`255` | コマンド自身の終了コード |
 | シグナル死 | sendaway も同じシグナルで終了する |
-| 終了コード `125` | sendaway 自身の失敗。直前の行に理由がある |
+| 終了コード `125` | sendaway 自身の失敗。直前の行に理由がある（認証失敗とホスト鍵の不一致では ssh 自身のメッセージ） |
 
 ## 動作要件
 
@@ -130,6 +134,14 @@ Exit 125 means sendaway failed, not the command; the preceding `[sendaway]` line
 If the trailer warns that the remote run modified files, add the target to `local:` or list the files in `pull:`.
 Tests that need secret files run with `sendaway local <cmd>`.
 ```
+
+## ドキュメント
+
+ドキュメントは [`docs/`](https://github.com/libraz/sendaway/tree/main/docs) に英語と日本語で置いています。
+
+- **学ぶ** — [概要](https://github.com/libraz/sendaway/blob/main/docs/ja/introduction.md) · [はじめに](https://github.com/libraz/sendaway/blob/main/docs/ja/getting-started.md) · [動作の仕組み](https://github.com/libraz/sendaway/blob/main/docs/ja/how-it-works.md)
+- **ガイド** — [設定](https://github.com/libraz/sendaway/blob/main/docs/ja/configuration.md) · [ビルドホスト](https://github.com/libraz/sendaway/blob/main/docs/ja/build-host.md) · [コーディングエージェント](https://github.com/libraz/sendaway/blob/main/docs/ja/coding-agents.md) · [セキュリティ](https://github.com/libraz/sendaway/blob/main/docs/ja/security.md)
+- **リファレンス** — [コマンドリファレンス](https://github.com/libraz/sendaway/blob/main/docs/ja/cli.md) · [出力行と終了コード](https://github.com/libraz/sendaway/blob/main/docs/ja/output-and-exit-codes.md) · [よくある質問と制限](https://github.com/libraz/sendaway/blob/main/docs/ja/faq.md)
 
 ## ライセンス
 
