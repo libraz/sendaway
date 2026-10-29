@@ -1,0 +1,24 @@
+Port 22
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM no
+PrintMotd no
+
+AllowAgentForwarding no
+AllowTcpForwarding no
+X11Forwarding no
+
+# Lets the client's SendEnv LANG reach remote-exec, as a distribution default would.
+AcceptEnv LANG LC_*
+
+# Left off: with it on, sshd itself would end a blackholed session and the
+# tests could no longer tell whether sendaway's own ping timeout works.
+ClientAliveInterval 0
+
+Subsystem sftp internal-sftp
