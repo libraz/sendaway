@@ -1,0 +1,94 @@
+version: "2"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: none
+  enable:
+    - canonicalheader
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - godoclint
+    - gosec
+    - govet
+    - ineffassign
+    - intrange
+    - modernize
+    - nakedret
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - revive
+    - staticcheck
+    - thelper
+    - unconvert
+    - unused
+    - usetesting
+    - wastedassign
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - perfsprint
+          - gosec
+  settings:
+    govet:
+      enable:
+        - nilness
+    perfsprint:
+      error-format: false
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: "*testing.T"
+        - name: context-keys-type
+        - name: dot-imports
+        - name: early-return
+          arguments:
+            - "preserveScope"
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+          arguments:
+            - "preserveScope"
+        - name: range
+        - name: receiver-naming
+        - name: superfluous-else
+          arguments:
+            - "preserveScope"
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+          arguments:
+            - allowRegex: "^_"
+        - name: use-any
+        - name: var-declaration
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/libraz/sendaway
+  exclusions:
+    generated: lax
