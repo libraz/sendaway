@@ -35,8 +35,9 @@ vet: ## go vet
 vuln: ## Report known vulnerabilities reachable from the code
 	$(TOOL) govulncheck ./...
 
-test: ## Unit tests with the race detector
+test: ## Unit tests with the race detector, then startup-time checks without it
 	go test -race ./...
+	go test -count=1 -run 'Overhead' ./...
 
 e2e: ## End-to-end tests against an sshd container (needs Docker)
 	go test -tags e2e -p 1 -count=1 ./e2e/
