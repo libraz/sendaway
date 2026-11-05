@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -304,6 +305,36 @@ func TestDoctorPathHead(t *testing.T) {
 	}
 	if f := toolFinding("h", "bun: not found"); !f.ok || f.String() != "warn  h: bun: not found; a run that sends bun here fails" {
 		t.Errorf("missing tool must warn without failing: %q (ok %v)", f, f.ok)
+	}
+}
+
+func TestDiskFinding(t *testing.T) {
+	const df = "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/vda1 104857600 52428800 %d 50%% /\n"
+	out := func(kib int64) string {
+		return "/srv/build\n" + strings.Replace(df, "%d", strconv.FormatInt(kib, 10), 1)
+	}
+	cases := []struct {
+		name    string
+		out     string
+		minFree int64
+		want    string
+		ok      bool
+	}{
+		{"above min", out(30 << 20), 20 << 30, "ok    h: 30.0 GiB free at /srv/build (min_free 20.0 GiB)", true},
+		{"equal to min", out(20 << 20), 20 << 30, "ok    h: 20.0 GiB free at /srv/build (min_free 20.0 GiB)", true},
+		{"below min", out(5 << 20), 20 << 30, "warn  h: 5.0 GiB free at /srv/build (min_free 20.0 GiB)", true},
+		{"check off", out(1 << 10), 0, "ok    h: 1.0 MiB free at /srv/build (min_free off)", true},
+		{"empty output", "", 20 << 30, "FAIL  h: cannot read free space (\"\")", false},
+		{"missing df line", "/srv/build\n", 20 << 30, "FAIL  h: cannot read free space (\"/srv/build\")", false},
+		{"non-numeric", "/srv/build\nhdr\na b c x d e\n", 20 << 30, "FAIL  h: cannot read free space (\"/srv/build\\nhdr\\na b c x d e\")", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := diskFinding("h", tc.minFree, tc.out)
+			if f.String() != tc.want || f.ok != tc.ok {
+				t.Fatalf("got %q (ok %v), want %q (ok %v)", f, f.ok, tc.want, tc.ok)
+			}
+		})
 	}
 }
 

@@ -201,7 +201,7 @@ func resolveTarget(root string) (*target, error) {
 }
 
 func (t *target) params(p *project, stderr *os.File) run.Params {
-	return run.Params{Root: p.root, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client}
+	return run.Params{Root: p.root, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client, MinFree: t.user.MinFree}
 }
 
 func joinWords(words []string) string { return "[" + strings.Join(words, ", ") + "]" }

@@ -40,6 +40,9 @@ type Request struct {
 	Artifacts   []string          `json:"artifacts"`
 	MergeOutput bool              `json:"merge_output"`
 	SentUnixMs  int64             `json:"sent_unix_ms"`
+	// MinFree is the free space in bytes the host must keep before an exec;
+	// 0 means no check.
+	MinFree int64 `json:"min_free"`
 }
 
 // PrepareRule runs Run in the root when the contents of the files in When change.
@@ -68,6 +71,9 @@ type Rejected struct {
 // Validate checks the fields of a request that come from the shim.
 // It does not check Protocol; the remote side compares that itself.
 func (r *Request) Validate() error {
+	if r.MinFree < 0 {
+		return fmt.Errorf("min_free %d is negative", r.MinFree)
+	}
 	switch r.Op {
 	case OpExec:
 		if len(r.Argv) == 0 {

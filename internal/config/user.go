@@ -2,9 +2,13 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -17,12 +21,19 @@ type Route struct {
 	Host string
 }
 
-// User is the decoded per-user configuration. The zero value means "nothing
-// configured".
+// DefaultMinFree is the free space, in bytes, the build host keeps when
+// min_free is absent.
+const DefaultMinFree int64 = 20 << 30
+
+// User is the decoded per-user configuration. LoadUser and ParseUser apply the
+// defaults, so a hand-built zero value has the free-space check disabled.
 type User struct {
 	Host      string
 	Routes    []Route
 	SSHConfig string // "~" expanded; empty means ssh's default
+	// MinFree is the free space in bytes the build host keeps before a run;
+	// 0 disables the check.
+	MinFree int64
 }
 
 // DefaultUserPath returns ${XDG_CONFIG_HOME:-~/.config}/sendaway/config.yml.
@@ -43,7 +54,7 @@ func DefaultUserPath() (string, error) {
 func LoadUser(file string) (*User, error) {
 	data, err := os.ReadFile(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return &User{}, nil
+		return &User{MinFree: DefaultMinFree}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -59,7 +70,7 @@ func ParseUser(name string, data []byte) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	u := &User{}
+	u := &User{MinFree: DefaultMinFree}
 	if root == nil {
 		return u, nil
 	}
@@ -70,6 +81,11 @@ func ParseUser(name string, data []byte) (*User, error) {
 			u.Host, err = p.host(v, "host")
 		case "routes":
 			u.Routes, err = p.routes(v)
+		case "min_free":
+			if isNull(v) {
+				return true, nil
+			}
+			u.MinFree, err = p.size(v, "min_free")
 		case "ssh_config":
 			if isNull(v) {
 				return true, nil
@@ -109,6 +125,51 @@ func (p *parser) host(n *yaml.Node, what string) (string, error) {
 		return "", p.errf(n, "%s %q must not contain whitespace", what, h)
 	}
 	return h, nil
+}
+
+// sizeUnits maps the accepted size units to their byte counts.
+var sizeUnits = map[string]int64{"B": 1, "KiB": 1 << 10, "MiB": 1 << 20, "GiB": 1 << 30, "TiB": 1 << 40}
+
+var sizeForm = regexp.MustCompile(`^(-?[0-9]+)([A-Za-z]*)$`)
+
+// size parses a byte count written as an integer with a binary unit. A bare 0
+// is accepted without a unit.
+func (p *parser) size(n *yaml.Node, what string) (int64, error) {
+	s, err := p.scalar(n, what)
+	if err != nil {
+		return 0, err
+	}
+	m := sizeForm.FindStringSubmatch(s)
+	if m == nil {
+		return 0, p.errf(n, "%s %q must be an integer with a unit (B, KiB, MiB, GiB, TiB), e.g. 20GiB", what, s)
+	}
+	num, err := strconv.ParseInt(m[1], 10, 64)
+	switch {
+	case err != nil && !strings.HasPrefix(m[1], "-"):
+		return 0, p.errf(n, "%s %q is too large", what, s)
+	case err != nil || num < 0:
+		return 0, p.errf(n, "%s %q must not be negative", what, s)
+	case num == 0 && m[2] == "":
+		return 0, nil
+	case m[2] == "":
+		return 0, p.errf(n, "%s %q needs a unit (B, KiB, MiB, GiB, TiB)", what, s)
+	}
+	mult, ok := sizeUnits[m[2]]
+	if !ok {
+		return 0, p.errf(n, "%s %q has an unknown unit %q (use B, KiB, MiB, GiB or TiB)", what, s, m[2])
+	}
+	if num > math.MaxInt64/mult {
+		return 0, p.errf(n, "%s %q is too large", what, s)
+	}
+	return num * mult, nil
+}
+
+// FormatSize renders a byte count with one decimal in GiB, or in MiB below 1 GiB.
+func FormatSize[T ~int64 | ~uint64](b T) string {
+	if b >= 1<<30 {
+		return fmt.Sprintf("%.1f GiB", float64(b)/(1<<30))
+	}
+	return fmt.Sprintf("%.1f MiB", float64(b)/(1<<20))
 }
 
 func (p *parser) routes(n *yaml.Node) ([]Route, error) {

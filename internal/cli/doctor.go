@@ -200,6 +200,16 @@ func doctorCmd(out io.Writer) int {
 		}
 	}
 
+	if cwd, err := os.Getwd(); err == nil {
+		if proj, err := loadProject(cwd); err == nil {
+			if h := user.HostFor(proj.root); h != "" {
+				section("project disk on " + h)
+				client := &sshx.Client{Host: h, SSHConfig: user.SSHConfig, StateDir: state}
+				add(checkDisk(client, proj.root, user.MinFree))
+			}
+		}
+	}
+
 	if slices.ContainsFunc(findings, func(f finding) bool { return !f.ok }) {
 		return run.ExitFailure
 	}
@@ -296,6 +306,43 @@ func toolFinding(host, line string) finding {
 		return finding{ok: true, warn: true, text: fmt.Sprintf("%s: %s: not found; a run that sends %s here fails", host, name, name)}
 	}
 	return finding{ok: true, text: host + ": " + line}
+}
+
+// diskScript prints the nearest existing ancestor of $1, then df -Pk for it.
+const diskScript = `p=$1; while [ ! -e "$p" ] && [ "$p" != / ]; do p=$(dirname "$p"); done; echo "$p"; df -Pk "$p"`
+
+// checkDisk reports the free space on the host where root lives or would be created.
+func checkDisk(c *sshx.Client, root string, minFree int64) finding {
+	out, errOut, err := ssh(c, "sh -c "+sshx.ShellQuote(diskScript)+" sh "+sshx.ShellQuote(root))
+	if err != nil {
+		return finding{text: fmt.Sprintf("%s: cannot read free space: %v: %s", c.Host, err, strings.TrimSpace(errOut))}
+	}
+	return diskFinding(c.Host, minFree, out)
+}
+
+// diskFinding turns the output of diskScript into a finding; free space below
+// minFree is a warning.
+func diskFinding(host string, minFree int64, out string) finding {
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	var avail int64 = -1
+	if len(lines) == 3 {
+		if f := strings.Fields(lines[2]); len(f) >= 6 {
+			if kib, err := strconv.ParseInt(f[3], 10, 64); err == nil && kib >= 0 && kib <= math.MaxInt64>>10 {
+				avail = kib << 10
+			}
+		}
+	}
+	if avail < 0 {
+		return finding{text: fmt.Sprintf("%s: cannot read free space (%q)", host, truncate(strings.TrimSpace(out), 60))}
+	}
+	limit := "off"
+	if minFree > 0 {
+		limit = config.FormatSize(minFree)
+	}
+	return finding{
+		ok: true, warn: avail < minFree,
+		text: fmt.Sprintf("%s: %s free at %s (min_free %s)", host, config.FormatSize(avail), lines[0], limit),
+	}
 }
 
 func resultOr(out string, err error) string {

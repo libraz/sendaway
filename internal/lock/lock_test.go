@@ -136,3 +136,39 @@ func TestHolderInfo(t *testing.T) {
 		t.Fatalf("file = %q, want b", b)
 	}
 }
+
+func TestTryAcquire(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "try.lock")
+
+	first, ok, err := TryAcquire(path, []byte("first"))
+	if err != nil || !ok || first == nil {
+		t.Fatalf("free lock: %v, %v, %v", first, ok, err)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "first" {
+		t.Fatalf("file = %q, want first", b)
+	}
+
+	l, ok, err := TryAcquire(path, []byte("second"))
+	if err != nil || ok || l != nil {
+		t.Fatalf("held lock: %v, %v, %v", l, ok, err)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "first" {
+		t.Fatalf("a refused attempt rewrote the holder: %q", b)
+	}
+
+	if err := first.Release(); err != nil {
+		t.Fatal(err)
+	}
+	second, ok, err := TryAcquire(path, []byte("2"))
+	if err != nil || !ok {
+		t.Fatalf("released lock: %v, %v", ok, err)
+	}
+	defer func() { _ = second.Release() }()
+	if b, _ := os.ReadFile(path); string(b) != "2" {
+		t.Fatalf("file = %q, want 2", b)
+	}
+
+	if _, _, err := TryAcquire(filepath.Join(t.TempDir(), "no", "dir.lock"), nil); err == nil {
+		t.Fatal("expected an error for a missing directory")
+	}
+}

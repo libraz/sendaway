@@ -71,6 +71,9 @@ type Params struct {
 	Version   string
 	Stderr    *os.File
 	Transport Transport
+	// MinFree is the free space in bytes the host must keep before an exec;
+	// 0 disables the check.
+	MinFree int64
 }
 
 // ExecParams describes a remote run of Argv.
@@ -210,6 +213,7 @@ func (x *execution) request(pl *plan) *proto.Request {
 		Pull:        proj.Pull,
 		Artifacts:   proj.Artifacts,
 		MergeOutput: x.merge,
+		MinFree:     x.p.MinFree,
 	}
 }
 

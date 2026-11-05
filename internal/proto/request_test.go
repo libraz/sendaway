@@ -26,6 +26,9 @@ func TestRequestValidate(t *testing.T) {
 			r.Op = OpForget
 			r.Argv = nil
 		}, true},
+		{"min_free zero", func(r *Request) { r.MinFree = 0 }, true},
+		{"min_free positive", func(r *Request) { r.MinFree = 20 << 30 }, true},
+		{"min_free negative", func(r *Request) { r.MinFree = -1 }, false},
 		{"empty op", func(r *Request) { r.Op = "" }, false},
 		{"unknown op", func(r *Request) { r.Op = "run" }, false},
 		{"exec without argv", func(r *Request) { r.Argv = nil }, false},

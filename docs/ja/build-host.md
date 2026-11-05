@@ -10,6 +10,7 @@
 - ワークステーションと同じ絶対パスの親ディレクトリ（例：`/Users/<name>`）。そのユーザーが作成し、所有します。`/Users/alice/Projects/big-repo` にあるプロジェクトは、ホスト上の `/Users/alice/Projects/big-repo` へ同期されます。
 - rsync 3.1 以降。`sendaway` は `/usr/local/bin` に置きます。非ログインの ssh はそこで見つけます。
 - 標準出力に何も出力しないログインプロファイルと rc ファイル。
+- プロジェクトのパスがあるファイルシステムに、`min_free`（既定 20 GiB）以上の空き容量。下回っていると、実行の前に、そのファイルシステム上の他のプロジェクトのコピーを、最後に使った時刻が古いものから削除します（[設定](configuration.md#min_free)を参照）。
 - ログインプロファイルで PATH に通したプロジェクトのツールチェーン。
 
 ホスト側の sendaway は、ローカルと同じプロトコルである必要があります。どちら側でも `sendaway version` で両方を確認できます。
@@ -39,6 +40,8 @@
 | `sendaway version` が動き、ローカルと同じプロトコルを報告する | `<host>: sendaway <version> (protocol <n>)` |
 | `date +%s` がローカルの時計と 2 秒以内に収まる | `<host>: clock within 2s` |
 | インストール済みの各 shim 名がログインシェルで解決できる（`$SHELL -lc 'command -v <name>'`） | `<host>: <path>` |
+
+プロジェクトの中で実行した場合、doctor はさらに、プロジェクトのルートの存在する最も近い親ディレクトリについてホスト上で `df -Pk` を実行し、`<host>: <free> free at <path> (min_free <min>)` を表示します。空き容量が `min_free` を下回ると警告になります。
 
 接続に失敗すると、そのホストの確認を中止し、ssh のエラーを表示します。`Host key verification failed` のエラーには、`run 'ssh <host>' by hand once to add the host to known_hosts` というヒントが付きます。
 

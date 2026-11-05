@@ -10,6 +10,7 @@ The build host is a Linux machine reached over ssh. It runs `sendaway remote-exe
 - The same absolute parent path as on the workstation (for example `/Users/<name>`), created and owned by that user. A project at `/Users/alice/Projects/big-repo` is synced to `/Users/alice/Projects/big-repo` on the host.
 - rsync 3.1 or later, and `sendaway` in `/usr/local/bin`, where a non-login ssh finds it.
 - Login profile and rc files that print nothing to stdout.
+- Free disk space of at least `min_free` (default 20 GiB) on the filesystem that holds the project paths. When less is available, a run first removes the least recently used copies of other projects on that filesystem (see [Configuration](configuration.md#min_free)).
 - The project's toolchain on PATH in the login profile.
 
 The sendaway on the host must speak the same protocol as the local one. `sendaway version` prints both on either side.
@@ -39,6 +40,8 @@ For each host in the user configuration (the default host and every route host) 
 | `sendaway version` runs and reports the local protocol | `<host>: sendaway <version> (protocol <n>)` |
 | `date +%s` is within 2 s of the local clock | `<host>: clock within 2s` |
 | Each installed shim name resolves in the login shell (`$SHELL -lc 'command -v <name>'`) | `<host>: <path>` |
+
+Inside a project, doctor also runs `df -Pk` on the host for the nearest existing parent of the project root and prints `<host>: <free> free at <path> (min_free <min>)`. Free space below `min_free` is a warning.
 
 A failed connection stops the checks for that host and prints the ssh error. A `Host key verification failed` error adds the hint `run 'ssh <host>' by hand once to add the host to known_hosts`.
 

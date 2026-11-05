@@ -124,6 +124,7 @@ routes:
   - path: ~/Projects/big-repo
     host: build02
 ssh_config: ~/.ssh/config.sendaway
+min_free: 20GiB
 ```
 
 ### `host`
@@ -143,6 +144,12 @@ ssh_config: ~/.ssh/config.sendaway
 
 別の ssh 設定ファイルで、`-F` として ssh と rsync に渡されます。先頭の `~` は展開されます。未設定の場合、ssh は既定の設定を使います。
 
+### `min_free`
+
+コマンドの実行前にビルドホストが空けておく容量です。整数に 2 進単位を付けて書きます。単位は `B`、`KiB`、`MiB`、`GiB`、`TiB` で、たとえば `20GiB` や `512MiB` です。既定値は `20GiB` です。単独の `0` はチェックを無効にします。それ以外の数値には単位が必要です。負の値、小数、ほかの単位はエラーになります（例：`min_free "20GB" has an unknown unit "GB" (use B, KiB, MiB, GiB or TiB)`）。
+
+ホストはプロジェクトのルートがあるファイルシステムの空き容量を測ります。`min_free` を下回っていると、実行の前に他のプロジェクトのコピーを削除します（[仕組み](how-it-works.md#4-セッション)を参照）。この設定はすべてのホストに適用されます。
+
 ## 状態の保存場所
 
 | 場所 | 内容 |
@@ -151,4 +158,4 @@ ssh_config: ~/.ssh/config.sendaway
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | プロジェクトごとのローカルロック |
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/cm/` | ssh の control ソケット |
 | `${XDG_DATA_HOME:-~/.local/share}/sendaway/bin/` | shim |
-| ホスト上の `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` | プロジェクトごとのリモート状態 |
+| ホスト上の `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` | プロジェクトごとのリモート状態。プロジェクトを示し、最後に使った時刻を記録する `root` ファイルを含む |

@@ -32,9 +32,9 @@ type Lock struct {
 // waits until the lock is free or ctx is done. On success the file content is
 // replaced by holder. When ctx ends first, Acquire returns ctx.Err().
 func Acquire(ctx context.Context, path string, holder []byte, onWait func(current []byte)) (*Lock, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600) //nolint:gosec // path is the caller-chosen lock file
+	f, err := openFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("open lock file: %w", err)
+		return nil, err
 	}
 	l := &Lock{f: f}
 
@@ -56,6 +56,25 @@ func Acquire(ctx context.Context, path string, holder []byte, onWait func(curren
 	return l, nil
 }
 
+// TryAcquire takes the exclusive lock on path without waiting, creating the
+// file if needed. It reports false, with a nil Lock, when another holder has
+// it. On success the file content is replaced by holder.
+func TryAcquire(path string, holder []byte) (*Lock, bool, error) {
+	f, err := openFile(path)
+	if err != nil {
+		return nil, false, err
+	}
+	locked, err := tryLock(f)
+	if err == nil && locked {
+		err = writeHolder(f, holder)
+	}
+	if err != nil || !locked {
+		_ = f.Close()
+		return nil, false, err
+	}
+	return &Lock{f: f}, true, nil
+}
+
 // Release unlocks and closes the lock file. Further calls are no-ops.
 func (l *Lock) Release() error {
 	if l == nil || l.f == nil {
@@ -67,6 +86,14 @@ func (l *Lock) Release() error {
 	// the release independent of any duplicated descriptor.
 	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 	return f.Close()
+}
+
+func openFile(path string) (*os.File, error) {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600) //nolint:gosec // path is the caller-chosen lock file
+	if err != nil {
+		return nil, fmt.Errorf("open lock file: %w", err)
+	}
+	return f, nil
 }
 
 // tryLock attempts a non-blocking exclusive lock and reports whether it won.

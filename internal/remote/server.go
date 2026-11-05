@@ -73,6 +73,10 @@ type Server struct {
 	// KillGrace is how long a signalled process group may take to exit before
 	// it is sent SIGKILL.
 	KillGrace time.Duration
+
+	// freeSpace measures the bytes available on the filesystem holding a path;
+	// nil means statfs(2). Tests replace it.
+	freeSpace func(path string) (uint64, error)
 }
 
 // Interval returns PingInterval, or DefaultPingInterval when it is zero.
@@ -391,12 +395,19 @@ func (ss *session) handle(req *proto.Request) (proto.Exit, *lock.Lock) {
 		ss.note(fmt.Sprintf("remote clock differs from local by %s; make may misjudge mtimes", skew))
 	}
 
+	if err := recordRoot(dir, req.Root); err != nil {
+		return errExit(fmt.Errorf("record root: %w", err)), l
+	}
+
 	if req.Op == proto.OpFetch {
 		files, rejected, err := collect(req.Root, req.Pull, modePull)
 		if err != nil {
 			return errExit(err), l
 		}
 		return proto.Exit{Collect: files, Rejected: rejected}, l
+	}
+	if err := ss.ensureSpace(req, dir); err != nil {
+		return errExit(err), l
 	}
 	exit, err := ss.runRequest(req, dir)
 	if err != nil {

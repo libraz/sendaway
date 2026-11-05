@@ -124,6 +124,7 @@ routes:
   - path: ~/Projects/big-repo
     host: build02
 ssh_config: ~/.ssh/config.sendaway
+min_free: 20GiB
 ```
 
 ### `host`
@@ -143,6 +144,12 @@ A list of `path` and `host` pairs. Both are required.
 
 An alternative ssh configuration file, passed to ssh and rsync as `-F`. A leading `~` is expanded. When unset, ssh uses its default configuration.
 
+### `min_free`
+
+The free space the build host must keep before a command runs, as an integer with a binary unit: `B`, `KiB`, `MiB`, `GiB` or `TiB` (for example `20GiB` or `512MiB`). The default is `20GiB`. A bare `0` disables the check; any other number needs a unit. Negative values, fractions and other units are rejected, for example `min_free "20GB" has an unknown unit "GB" (use B, KiB, MiB, GiB or TiB)`.
+
+The host measures the filesystem that holds the project root. When less than `min_free` is available it removes the copies of other projects before the run (see [How it works](how-it-works.md#4-session)). The setting applies to every host.
+
 ## Where state lives
 
 | Location | Content |
@@ -151,4 +158,4 @@ An alternative ssh configuration file, passed to ssh and rsync as `-F`. A leadin
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | Per-project local locks |
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/cm/` | ssh control sockets |
 | `${XDG_DATA_HOME:-~/.local/share}/sendaway/bin/` | Shims |
-| `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` on the host | Remote per-project state |
+| `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` on the host | Remote per-project state, including a `root` file naming the project and recording when it was last used |
