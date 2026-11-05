@@ -19,7 +19,7 @@ Claude Code と Codex は、シェルを通じてビルドやテストのコマ�
 ```markdown
 Builds and tests here run on a remote host through sendaway shims. Use the usual commands (`make test`, `ctest`).
 stderr ends with `[sendaway] <host> exit N · <time> · run <id> · log <path>`; N is the command's exit code.
-Exit 125 means sendaway failed, not the command; the preceding `[sendaway]` line says why.
+Exit 125 with no trailer means sendaway failed, not the command; the preceding `[sendaway]` line says why.
 `sendaway last` summarizes the latest run, and the full output is in its log path.
 If the trailer warns that the remote run modified files, add the target to `local:` or list the files in `pull:`.
 Tests that need secret files run with `sendaway local <cmd>`.
@@ -27,8 +27,10 @@ Tests that need secret files run with `sendaway local <cmd>`.
 
 ## 結果の読み方
 
+![sendaway が実行に加える stderr の行の構成です。ホスト、OS とアーキテクチャ、同期時間を示す開始行、送らなかったファイルの行、接頭辞のないコマンド出力、変更警告、そして最後の行としてホスト、終了コード、所要時間、実行 ID、ログのパスを示すトレーラーが並びます。](../images/trailer-ja.svg)
+
 - トレーラーは stderr の最後の行です。`exit N` はコマンド自身の終了コードで、エージェントのシェルが見る値と同じです。`killed by signal N` は、コマンドがシグナルで死んだことを表します。
-- 終了コード 125 がコマンドのコードであることはありません。トレーラーは出力されず、最後の `[sendaway]` 行に理由が書かれます（例：`connection lost during run — result unknown`）。
+- トレーラーのない終了コード 125 は sendaway 自身の失敗です。最後の `[sendaway]` 行に理由が書かれます（例：`connection lost during run — result unknown`）。コマンド自身が 125 で終了した場合は、`exit 125` と書かれたトレーラーが出ます。
 - `sendaway last` は、コマンド、ホスト、時刻、結果、変更されたファイル、`output.log` のパスを表示します。ログには実行の出力がすべて入っています。
 - `remote run modified N synced files (not copied back)` という警告は、コマンドがホスト上の追跡ファイルを書き換え、その内容がローカルのツリーに届いていないことを意味します。フォーマッタやコードジェネレータは `local:` に、その出力は `pull:` に入れます。
 - `sendaway fetch <path>` は、ローカルのツリーに触れずに、ホストのルート相対のファイルを最新の実行の `fetched/` ディレクトリへ持ち帰ります。

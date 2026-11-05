@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-labelledby="sa-hl-t sa-hl-d">
+  <title id="sa-hl-t">How the command is launched on the build host</title>
+  <desc id="sa-hl-d">Two panels, the Mac on the left and the build host on the right. The project at /Users/alice/Projects/app on the Mac sits at the same absolute path on the host, where the parent /Users/alice is owned by the build user. The environment the host's shell starts with is built from scratch out of three parts: the forwarded variables, which are the allowlist plus the env: names set locally, after secret-like names and Mac-specific values such as /opt/homebrew paths are dropped on the Mac; HOME, USER, LOGNAME, SHELL and PATH from the host's own ssh session; and SENDAWAY_PASSTHROUGH=1. Nothing else crosses over, not even LANG or LC_*. The command is launched as $SHELL -lc 'exec env -- "$@"' sendaway NAME=value … cmd args, and rc and profile files must print nothing on stdout. Three steps follow: the login profile runs first and puts the toolchain on PATH, env then applies the forwarded values over what the profile set, and the command runs in its own process group with stdin on /dev/null and no terminal.</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    rect.warn { fill:#ffffff }
+    .warnt, text.warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} rect.warn{fill:#161b22} .warnt,text.warnt{fill:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-hl-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-hl-b" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-hl-w" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="warnt" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="420" rx="12"/>
+
+  <!-- panels -->
+  <rect class="grp" x="24" y="36" width="268" height="284" rx="10"/>
+  <rect class="grp" x="316" y="36" width="620" height="344" rx="10"/>
+  <text class="lbl" x="40" y="58">Mac</text>
+  <text class="lbl" x="332" y="58">build host (Linux)</text>
+
+  <!-- connectors, drawn under the boxes -->
+  <path class="ln" d="M276,91 H330" marker-end="url(#sa-hl-a)"/>
+  <path class="warn" d="M158,216 V242" marker-end="url(#sa-hl-w)"/>
+  <path class="ln2" d="M626,226 V240" marker-end="url(#sa-hl-b)"/>
+  <path class="ln" d="M424,288 V302" marker-end="url(#sa-hl-a)"/>
+  <path class="ln" d="M516,334 H532" marker-end="url(#sa-hl-a)"/>
+  <path class="ln" d="M718,334 H734" marker-end="url(#sa-hl-a)"/>
+
+  <!-- Mac -->
+  <rect class="chip" x="40" y="68" width="236" height="46" rx="7"/>
+  <text class="h" x="52" y="86">project on the Mac</text>
+  <text class="code" x="52" y="103">/Users/alice/Projects/app</text>
+
+  <rect class="chip" x="40" y="156" width="236" height="60" rx="7"/>
+  <text class="h" x="52" y="174">local environment</text>
+  <text class="s" x="52" y="190">the allowlist, plus env: names</text>
+  <text class="s" x="52" y="204">that are set locally</text>
+
+  <rect class="warn" x="40" y="244" width="236" height="60" rx="7"/>
+  <text class="h warnt" x="52" y="262">dropped before sending</text>
+  <text class="s" x="52" y="278">secret-like names: TOKEN, AWS_ …</text>
+  <text class="s" x="52" y="292">Mac paths: /opt/homebrew, /Library/ …</text>
+
+  <!-- build host -->
+  <rect class="card" x="332" y="68" width="588" height="46" rx="7"/>
+  <text class="code" x="346" y="86">/Users/alice/Projects/app</text>
+  <text class="s" x="346" y="103">the same absolute path; the parent /Users/alice is owned by the build user</text>
+
+  <rect class="alt" x="332" y="130" width="588" height="96" rx="7"/>
+  <text class="lbl" x="346" y="148">environment the shell starts with, built from scratch</text>
+  <text class="s" x="906" y="148" text-anchor="end">nothing else, not even LANG or LC_*</text>
+  <path class="ln2" d="M276,186 H342" marker-end="url(#sa-hl-b)"/>
+  <rect class="chip" x="344" y="156" width="184" height="60" rx="5"/>
+  <text class="h" x="356" y="174">forwarded</text>
+  <text class="s" x="356" y="190">from the Mac, filtered</text>
+  <text class="code" x="356" y="204">MAKEFLAGS GOFLAGS CI …</text>
+  <rect class="chip" x="536" y="156" width="184" height="60" rx="5"/>
+  <text class="h" x="548" y="174">host ssh session</text>
+  <text class="code" x="548" y="190">HOME USER LOGNAME</text>
+  <text class="code" x="548" y="204">SHELL PATH</text>
+  <rect class="chip" x="728" y="156" width="184" height="60" rx="5"/>
+  <text class="h" x="740" y="174">always added</text>
+  <text class="code" x="740" y="190">SENDAWAY_PASSTHROUGH=1</text>
+
+  <rect class="card" x="332" y="242" width="588" height="46" rx="7"/>
+  <text class="mono" x="346" y="261">$SHELL -lc 'exec env -- "$@"' sendaway NAME=value … cmd args</text>
+  <text class="s warnt" x="346" y="278">rc and profile files must print nothing on stdout</text>
+
+  <rect class="card" x="332" y="304" width="184" height="60" rx="7"/>
+  <text class="lbl" x="342" y="324">1</text>
+  <text class="h" x="358" y="324">login profile</text>
+  <text class="s" x="358" y="340">runs first and puts the</text>
+  <text class="s" x="358" y="353">toolchain on PATH</text>
+  <rect class="card" x="534" y="304" width="184" height="60" rx="7"/>
+  <text class="lbl" x="544" y="324">2</text>
+  <text class="h" x="560" y="324">forwarded values win</text>
+  <text class="s" x="560" y="340">env sets each NAME=value</text>
+  <text class="s" x="560" y="353">over what the profile set</text>
+  <rect class="card" x="736" y="304" width="184" height="60" rx="7"/>
+  <text class="lbl" x="746" y="324">3</text>
+  <text class="h" x="762" y="324">the command</text>
+  <text class="s" x="762" y="340">its own process group</text>
+  <text class="s" x="762" y="353">stdin /dev/null, no tty</text>
+
+  <text class="s" x="480" y="404" text-anchor="middle">No other variable is passed in from either machine; anything else the command sees comes from the host's login shell and its profile.</text>
+</svg>

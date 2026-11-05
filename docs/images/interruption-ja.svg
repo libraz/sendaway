@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 416" width="960" height="416" role="img" aria-labelledby="sa-int-ja-t sa-int-ja-d">
+  <title id="sa-int-ja-t">実行を止めるもの、止め方</title>
+  <desc id="sa-int-ja-d">左はワークステーションの shim です。最初の SIGINT・SIGTERM・SIGHUP で、5 つの手順が始まります。cancel フレームを送る、セッションを閉じて最大 10 秒待つ、トレーラーを killed by signal n として表示する、実行を記録する、同じシグナルで自分を終了させる、の順です。右はビルドホストの remote-exec です。cancel フレームは SIGINT に、接続の切断・出力パイプの破損・30 秒間フレームが届かないことは SIGTERM になります。どちらのシグナルもコマンドのプロセスグループ全体に送られ、5 秒後もグループが動いていれば SIGKILL を送り、その後リモートロックを解放します。setsid を呼んだプロセスはグループを離れているため停止されない、という注意も示しています。下の帯は生存確認です。request 以降、 shim は 5 秒ごとに ping を送り、ホストはリモートロック待ち・push・prepare・コマンドのどの段階でも、30 秒間無音なら停止します。</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .lnd   { fill:none; stroke:#8a6a1f; stroke-width:1.2; stroke-dasharray:4 3 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    .wseam { fill:none; stroke:#a3401f; stroke-width:1.2; stroke-dasharray:5 4 }
+    .warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .hb    { font-size:12.5px; font-weight:600 }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#1f2328 }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .lnd{stroke:#d9b45c} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} .wseam{stroke:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e} .code{fill:#e6edf3} .warnt{fill:#e08a68}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-int-ja-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-int-ja-a2" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="416" rx="12"/>
+  <rect class="grp" x="24" y="20" width="344" height="300" rx="8"/>
+  <text class="lbl" x="40" y="40">ワークステーション — shim</text>
+  <rect class="grp" x="392" y="20" width="544" height="300" rx="8"/>
+  <text class="lbl" x="408" y="40">ビルドホスト — remote-exec</text>
+  <rect class="chip" x="40" y="52" width="312" height="44" rx="6"/>
+  <text class="h" x="52" y="70">SIGINT・SIGTERM・SIGHUP</text>
+  <text class="s" x="52" y="86">最初の 1 つでこの手順が始まる</text>
+  <rect class="card" x="40" y="108" width="312" height="30" rx="6"/>
+  <text class="lbl" x="52" y="127">1</text>
+  <text class="h" x="68" y="127">cancel フレームを送る</text>
+  <rect class="chip" x="40" y="146" width="312" height="30" rx="6"/>
+  <text class="lbl" x="52" y="165">2</text>
+  <text class="h" x="68" y="165">セッションを閉じ、最大 10 秒待つ</text>
+  <rect class="chip" x="40" y="184" width="312" height="30" rx="6"/>
+  <text class="lbl" x="52" y="203">3</text>
+  <text class="h" x="68" y="203">トレーラーを表示</text>
+  <rect class="chip" x="40" y="222" width="312" height="30" rx="6"/>
+  <text class="lbl" x="52" y="241">4</text>
+  <text class="h" x="68" y="241">実行を記録</text>
+  <rect class="chip" x="40" y="260" width="312" height="30" rx="6"/>
+  <text class="lbl" x="52" y="279">5</text>
+  <text class="h" x="68" y="279">同じシグナルで終了</text>
+  <text class="code" x="176" y="203">killed by signal &lt;n&gt;</text>
+  <path class="ln" d="M352,123 H408" marker-end="url(#sa-int-ja-a)"/>
+  <text class="lbl" x="408" y="98">停止の原因</text>
+  <text class="lbl" x="616" y="98">シグナル</text>
+  <text class="lbl" x="732" y="98">プロセスグループ</text>
+  <rect class="card" x="408" y="108" width="170" height="30" rx="6"/>
+  <text class="code" x="420" y="127">cancel frame</text>
+  <rect class="chip" x="408" y="160" width="170" height="30" rx="6"/>
+  <text class="h" x="420" y="179">接続が閉じた</text>
+  <rect class="chip" x="408" y="198" width="170" height="30" rx="6"/>
+  <text class="h" x="420" y="217">出力パイプが壊れた</text>
+  <rect class="chip" x="408" y="236" width="170" height="30" rx="6"/>
+  <text class="h" x="420" y="255">30 秒間フレームなし</text>
+  <rect class="alt" x="616" y="108" width="84" height="30" rx="6"/>
+  <text class="code" x="658" y="127" text-anchor="middle">SIGINT</text>
+  <rect class="alt" x="616" y="198" width="84" height="30" rx="6"/>
+  <text class="code" x="658" y="217" text-anchor="middle">SIGTERM</text>
+  <path class="ln2" d="M578,123 H616" marker-end="url(#sa-int-ja-a2)"/>
+  <path class="ln2" d="M578,175 H594 V251 M578,251 H594"/>
+  <path class="ln2" d="M578,213 H616" marker-end="url(#sa-int-ja-a2)"/>
+  <path class="ln2" d="M700,123 H732" marker-end="url(#sa-int-ja-a2)"/>
+  <path class="ln2" d="M700,213 H714 V140 H732" marker-end="url(#sa-int-ja-a2)"/>
+  <rect class="alt" x="732" y="108" width="188" height="44" rx="6"/>
+  <text class="h" x="744" y="126">プロセスグループへ送信</text>
+  <text class="s" x="744" y="142">コマンドとその子プロセス</text>
+  <path class="ln2" d="M826,152 V168" marker-end="url(#sa-int-ja-a2)"/>
+  <rect class="alt" x="732" y="170" width="188" height="44" rx="6"/>
+  <text class="h" x="744" y="188">5 秒後に SIGKILL</text>
+  <text class="s" x="744" y="204">グループがまだ動いていれば</text>
+  <path class="ln2" d="M826,214 V230" marker-end="url(#sa-int-ja-a2)"/>
+  <rect class="alt" x="732" y="232" width="188" height="30" rx="6"/>
+  <text class="h" x="744" y="251">リモートロックを解放</text>
+  <rect class="warn" x="732" y="272" width="188" height="38" rx="6"/>
+  <text class="s" x="744" y="287"><tspan class="warnt">setsid を呼んだプロセスは</tspan></text>
+  <text class="s" x="744" y="301"><tspan class="warnt">グループの外にあり停止されない</tspan></text>
+  <rect class="grp" x="24" y="332" width="912" height="58" rx="8"/>
+  <text class="lbl" x="40" y="351">生存確認</text>
+  <text class="s" x="40" y="367">shim は 5 秒ごとに ping</text>
+  <text class="s" x="40" y="381">ホストは 30 秒無音で停止</text>
+  <rect class="chip" x="340" y="342" width="120" height="24" rx="5"/>
+  <text class="s" x="400.0" y="358" text-anchor="middle">リモートロック待ち</text>
+  <rect class="chip" x="468" y="342" width="100" height="24" rx="5"/>
+  <text class="s" x="518.0" y="358" text-anchor="middle">push</text>
+  <rect class="chip" x="576" y="342" width="100" height="24" rx="5"/>
+  <text class="s" x="626.0" y="358" text-anchor="middle">prepare</text>
+  <rect class="chip" x="684" y="342" width="236" height="24" rx="5"/>
+  <text class="s" x="802.0" y="358" text-anchor="middle">コマンド</text>
+  <path class="ln" d="M340,372 V380 M364,372 V380 M388,372 V380 M412,372 V380 M436,372 V380 M460,372 V380 M484,372 V380 M508,372 V380 M532,372 V380 M556,372 V380 M580,372 V380 M604,372 V380 M628,372 V380 M652,372 V380 M676,372 V380 M700,372 V380 M724,372 V380 M748,372 V380 M772,372 V380 M796,372 V380 M820,372 V380 M844,372 V380 M868,372 V380 M892,372 V380 M916,372 V380"/>
+  <text class="s" x="480" y="408" text-anchor="middle">何がセッションを止めても、ホストはプロセスグループ全体にシグナルを送り、必要なら 5 秒後に強制終了し、ロックを解放します。</text>
+</svg>

@@ -19,7 +19,7 @@ Add this to `AGENTS.md` or `CLAUDE.md` in the project:
 ```markdown
 Builds and tests here run on a remote host through sendaway shims. Use the usual commands (`make test`, `ctest`).
 stderr ends with `[sendaway] <host> exit N · <time> · run <id> · log <path>`; N is the command's exit code.
-Exit 125 means sendaway failed, not the command; the preceding `[sendaway]` line says why.
+Exit 125 with no trailer means sendaway failed, not the command; the preceding `[sendaway]` line says why.
 `sendaway last` summarizes the latest run, and the full output is in its log path.
 If the trailer warns that the remote run modified files, add the target to `local:` or list the files in `pull:`.
 Tests that need secret files run with `sendaway local <cmd>`.
@@ -27,8 +27,10 @@ Tests that need secret files run with `sendaway local <cmd>`.
 
 ## Reading the result
 
+![Anatomy of the stderr lines sendaway adds to a run: the start line with host, OS-architecture and sync time, the withheld-files line, the command's unprefixed output, the modified-files warning, and the trailer with host, exit code, duration, run id and log path as the last line.](../images/trailer.svg)
+
 - The trailer is the last line of stderr. `exit N` is the command's own exit code, the same value the agent's shell sees. `killed by signal N` means the command died from a signal.
-- Exit 125 is never a command's code. No trailer is printed; the last `[sendaway]` line says why, for example `connection lost during run — result unknown`.
+- Exit 125 with no trailer is sendaway's own failure; the last `[sendaway]` line says why, for example `connection lost during run — result unknown`. A command that itself exits 125 still gets a trailer reading `exit 125`.
 - `sendaway last` prints the command, host, times, result, any modified files and the path of `output.log`. The log holds the full output of the run.
 - A warning `remote run modified N synced files (not copied back)` means the command rewrote tracked files on the host and the local tree did not receive them. A formatter or code generator belongs in `local:`, or its outputs in `pull:`.
 - `sendaway fetch <path>` brings a root-relative file from the host into the latest run's `fetched/` directory without touching the local tree.

@@ -70,6 +70,8 @@ Commands other than a run print the same `[sendaway] <message>` form on failure,
 
 ## Exit codes
 
+![Where a run can end: config errors, auth and host key failures, sync and prepare failures, dropped connections and refused pulls exit 125, an unreachable host runs the command locally, and otherwise the command's own exit code or signal comes back unchanged.](../images/outcomes.svg)
+
 | Code | Meaning |
 |---|---|
 | `0`-`255` | The command's own exit code, unchanged. |

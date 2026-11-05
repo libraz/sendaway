@@ -4,6 +4,8 @@ This page follows one remote run from the shim's decision to the recorded result
 
 ## 1. Decision
 
+![A shim checks, in order, SENDAWAY_PASSTHROUGH, the upward search for .sendaway.yml, a local: match and a remote: match, and only a remote: match that no local: rule overrides leaves the machine, while the rule [make, test] matches make test, make -j4 test and make -C sub test but not make tests.](../images/routing-decision.svg)
+
 The shim finds `.sendaway.yml`, matches the command line against the rules (see [Configuration](configuration.md#remote-and-local-rule-syntax)) and takes one of three paths:
 
 - No `.sendaway.yml`, or `SENDAWAY_PASSTHROUGH` set to a non-empty value: the real binary replaces the shim process, untouched.
@@ -20,6 +22,8 @@ The shim takes a per-project local lock (keyed by the root path). While another 
 
 ## 3. File sets
 
+![Git splits the working tree into a manifest, a secret set carved out of it and an ignored set; one rsync sends the manifest minus the secret set to the same absolute path and a parallel rsync syncs .git, while the host deletes what the previous run sent and this one does not, leaves ignored paths alone, and a submodule, nested repository or non-NFC name ends the run with exit 125 before anything is sent.](../images/file-sets.svg)
+
 The shim builds three sets with git, so negation patterns, `.git/info/exclude` and `core.excludesFile` behave as they do for git:
 
 - **Manifest**: files in the work tree that git tracks or does not ignore, sorted. A tracked file that was deleted locally is not in it.
@@ -29,6 +33,8 @@ The shim builds three sets with git, so negation patterns, `.git/info/exclude` a
 The manifest fails the run on a git submodule, a nested repository, or a file name that is not stored in NFC on disk. Symlinks that point outside the repository are sent but dangle on the host, and a warning names them. A manifest larger than 256 MiB produces a warning naming the five largest files.
 
 ## 4. Session
+
+![One remote run: the shim and the build host exchange hello, request, ready, pushed and output frames over one ssh connection; a connection lost before pushed means nothing ran, after it the result is unknown.](../images/session-sequence.svg)
 
 The run uses one ssh connection, started as `sendaway remote-exec` on the host and kept in the background for ten minutes by ssh's control master so later runs reconnect quickly. The control socket is named after the alias and the configuration `ssh -G` resolves for it, so editing the `Host` entry makes the next run open a new connection; the old one exits once idle. The session proceeds in this order:
 
@@ -69,6 +75,8 @@ Everything shown is also appended to the run's `output.log`, including sendaway'
 
 ## 7. Interruption and liveness
 
+![On the first SIGINT, SIGTERM or SIGHUP the shim sends a cancel and waits up to 10 s; the host signals the command's process group (SIGINT for a cancel, SIGTERM for a lost connection or 30 s of silence), sends SIGKILL after 5 s, and releases the lock.](../images/interruption.svg)
+
 The shim handles SIGINT, SIGTERM and SIGHUP. On the first one it sends a cancel frame, closes the session, waits up to 10 s for it to end, prints the trailer as `killed by signal <n>`, records the run, and then dies by the same signal.
 
 On the host, a cancel frame sends SIGINT to the command's process group. Any other cause for stopping (the connection closing, a broken output pipe, or silence) sends SIGTERM. If the group is still running after a 5 s grace period it receives SIGKILL. The host then releases the lock.
@@ -76,6 +84,8 @@ On the host, a cancel frame sends SIGINT to the command's process group. Any oth
 The shim sends a ping every 5 s. The host stops the session when it hears nothing for 30 s, at any stage after the request: while waiting for the lock, during the push, in prepare or in the command. A dropped network therefore stops the remote work after at most 30 s of silence. Processes that moved themselves into a new session with `setsid` are outside the group and are not stopped.
 
 ## 8. Completion
+
+![After the command exits, exit 0 copies the pull: paths into the same place in the project tree, all or nothing, while a failure or signal copies the artifacts: paths only into the run record, and changed synced files that were not collected are reported but not copied back.](../images/collection.svg)
 
 When the command exits, the host decides what to bring back:
 

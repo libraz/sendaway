@@ -2,6 +2,8 @@
 
 ビルドホストは、ssh 経由で到達する Linux マシンです。`sendaway remote-exec` を必要なときに起動し、プロジェクトのコマンドを実行します。デーモンは不要です。
 
+![プロジェクトはホストでも同じ絶対パスに置かれ、コマンドはログインシェルの下で起動されます。環境変数はホストの HOME・USER・LOGNAME・SHELL・PATH、除外を経た転送変数、SENDAWAY_PASSTHROUGH=1 からゼロから組み立てられ、転送した値はプロファイルの設定より優先されます。](../images/host-launch-ja.svg)
+
 ## 要件
 
 - 鍵認証のみ。`sshd_config` で `AllowAgentForwarding no`、`AllowTcpForwarding no`、`ClientAliveInterval 15` を設定します。

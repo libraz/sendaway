@@ -2,6 +2,8 @@
 
 The build host is a Linux machine reached over ssh. It runs `sendaway remote-exec` on demand and starts the project's commands. It needs no daemon.
 
+![The project sits at the same absolute path on the host, and the command runs under the login shell with an environment rebuilt from the host's HOME, USER, LOGNAME, SHELL and PATH, the filtered forwarded variables and SENDAWAY_PASSTHROUGH=1, with forwarded values applied over the profile.](../images/host-launch.svg)
+
 ## Requirements
 
 - Key authentication only. `AllowAgentForwarding no`, `AllowTcpForwarding no` and `ClientAliveInterval 15` in `sshd_config`.

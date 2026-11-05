@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 410" width="960" height="410" role="img" aria-labelledby="sa-fs-ja-t sa-fs-ja-d">
+  <title id="sa-fs-ja-t">git で作る 3 つのファイル集合と、それぞれがホストでどうなるか</title>
+  <desc id="sa-fs-ja-d">ワークステーションでは、git が作業ツリーを 3 つの集合に分けます。マニフェストは、追跡中のファイルと、無視されていない未追跡ファイルを並べたものです。シークレットセットはマニフェストから取り除かれる部分で、名前の規則に一致するファイル、トークンを含む .npmrc や .yarnrc.yml、exclude: の項目からなります。無視セットは git が無視する未追跡パスです。ルートを起点にした rsync が、マニフェストからシークレットセットを除いたものをビルドホストの同じ絶対パスへ送ります。その前に、ホストは前回送られて今回は送られないファイルを削除します。シークレットのファイルは届かず、stderr に一覧されます。無視されたパスは送られず、ホスト側のコピーにも手を付けないので、ビルドディレクトリは実行をまたいで残ります。もう 1 本の rsync が .git を並行して送り、古いファイルは消しますが、config、FETCH_HEAD、hooks/、logs/、*.lock、objects/tmp_* には触れません。ホストはリモートを持たない最小限の .git/config を書きます。git サブモジュール、入れ子のリポジトリ、NFC で保存されていないファイル名があると、何も送らずに終了コード 125 で失敗します。</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    .warnt { fill:#a3401f }
+    .s.warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} .warnt{fill:#e08a68} .s.warnt{fill:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-fs-ja-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-fs-ja-b" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="410" rx="12"/>
+  <text class="lbl" x="24" y="30">ワークステーション：git で集合を作り、2 本の rsync で送る</text>
+  <text class="lbl" x="672" y="30">ビルドホスト：同じ絶対パス</text>
+  <path class="seam" d="M660,18 V372"/>
+  <path class="ln" d="M156,80 H178" marker-end="url(#sa-fs-ja-a)"/>
+  <path class="ln" d="M156,196 H168 V332 H178" marker-end="url(#sa-fs-ja-a)"/>
+  <path class="ln" d="M168,254 H178" marker-end="url(#sa-fs-ja-a)"/>
+  <path class="ln" d="M215,118 V134" marker-end="url(#sa-fs-ja-a)"/>
+  <text class="s" x="223" y="130">除外</text>
+  <path class="ln" d="M430,80 H450" marker-end="url(#sa-fs-ja-a)"/>
+  <path class="ln2" d="M648,80 H670" marker-end="url(#sa-fs-ja-b)"/>
+  <path class="ln2" d="M648,332 H670" marker-end="url(#sa-fs-ja-b)"/>
+
+  <rect class="chip" x="24" y="42" width="132" height="170" rx="7"/>
+  <text class="h" x="34" y="61">作業ツリー</text>
+  <text class="s" x="34" y="77">git のトップレベルの</text>
+  <text class="s" x="34" y="91">プロジェクトルート。</text>
+  <text class="s" x="34" y="105">.git はディレクトリ</text>
+  <text class="s" x="34" y="119">（worktree は拒否）</text>
+  <rect class="chip" x="24" y="226" width="132" height="142" rx="7"/>
+  <rect class="warn" x="24" y="226" width="132" height="142" rx="7"/>
+  <text class="h" x="34" y="245">マニフェスト失敗</text>
+  <text class="s" x="34" y="261">git サブモジュール、</text>
+  <text class="s" x="34" y="275">入れ子のリポジトリ、</text>
+  <text class="s" x="34" y="289">NFC で保存されて</text>
+  <text class="s" x="34" y="303">いないファイル名で</text>
+  <text class="warnt s" x="34" y="317">終了コード 125。</text>
+  <text class="warnt s" x="34" y="331">何も送られない</text>
+  <rect class="card" x="180" y="42" width="250" height="76" rx="7"/>
+  <text class="lbl" x="190" y="61">1</text>
+  <text class="h" x="204" y="61">マニフェスト</text>
+  <text class="s" x="190" y="77">追跡中のファイルと、無視されて</text>
+  <text class="s" x="190" y="91">いない未追跡ファイル（整列済み）</text>
+  <text class="s" x="190" y="105">ローカルで削除したものは含まない</text>
+  <rect class="chip" x="180" y="136" width="250" height="76" rx="7"/>
+  <rect class="warn" x="180" y="136" width="250" height="76" rx="7"/>
+  <text class="lbl" x="190" y="155">2</text>
+  <text class="h" x="204" y="155">シークレットセット</text>
+  <text class="s" x="190" y="171">名前の規則：.env、*.key、id_rsa* …</text>
+  <text class="s" x="190" y="185">トークンを含む .npmrc / .yarnrc.yml</text>
+  <text class="s" x="190" y="199">exclude: の項目</text>
+  <rect class="chip" x="180" y="226" width="250" height="56" rx="7"/>
+  <text class="lbl" x="190" y="245">3</text>
+  <text class="h" x="204" y="245">無視セット</text>
+  <text class="s" x="190" y="261">git が無視する未追跡パス</text>
+  <rect class="chip" x="180" y="296" width="250" height="72" rx="7"/>
+  <text class="h" x="190" y="315">.git ディレクトリ</text>
+  <text class="s" x="190" y="331">リポジトリ本体。作業ツリーとは</text>
+  <text class="s" x="190" y="345">別に同期する</text>
+  <rect class="alt" x="452" y="42" width="196" height="76" rx="7"/>
+  <text class="h" x="462" y="61">rsync：作業ツリー</text>
+  <text class="s" x="462" y="77">マニフェストからシークレット</text>
+  <text class="s" x="462" y="91">集合を除いたもの。ルート起点で</text>
+  <text class="s" x="462" y="105">無視・除外パスを飛ばす</text>
+  <text class="warnt s" x="452" y="155">送られない</text>
+  <text class="s" x="452" y="171">各ファイルを stderr に表示：</text>
+  <text class="code" x="452" y="185">not sent (secret-like): …</text>
+  <text class="warnt s" x="452" y="245">送られない</text>
+  <text class="s" x="452" y="261">一覧にも出ない</text>
+  <rect class="alt" x="452" y="296" width="196" height="72" rx="7"/>
+  <text class="h" x="462" y="315">rsync：.git（並行）</text>
+  <text class="s" x="462" y="331">古いファイルは消すが、次は除外：</text>
+  <text class="code" x="462" y="345">config FETCH_HEAD hooks/</text>
+  <text class="code" x="462" y="359">logs/ *.lock objects/tmp_*</text>
+  <rect class="alt" x="672" y="42" width="264" height="76" rx="7"/>
+  <text class="h" x="682" y="61">送られたファイル</text>
+  <text class="s" x="682" y="77">同じ絶対パスに書かれる。 push の</text>
+  <text class="s" x="682" y="91">前に、前回送られて今回は送られない</text>
+  <text class="s" x="682" y="105">ファイルを削除する</text>
+  <rect class="chip" x="672" y="136" width="264" height="76" rx="7"/>
+  <text class="h" x="682" y="155">除外されたファイル</text>
+  <text class="s" x="682" y="171">届かない。前回送られていたものは</text>
+  <text class="s" x="682" y="185">ほかの消えたファイルと同様に削除</text>
+  <rect class="chip" x="672" y="226" width="264" height="56" rx="7"/>
+  <text class="h" x="682" y="245">無視されたパス</text>
+  <text class="s" x="682" y="261">ホスト側のコピーはそのまま。ビルド</text>
+  <text class="s" x="682" y="275">ディレクトリは実行をまたいで残る</text>
+  <rect class="alt" x="672" y="296" width="264" height="72" rx="7"/>
+  <text class="h" x="682" y="315">.git</text>
+  <text class="s" x="682" y="331">古いファイルは削除、残りは更新</text>
+  <text class="s" x="682" y="345">その後、最小限の .git/config を書く。</text>
+  <text class="s" x="682" y="359">リモート・URL・認証ヘルパーなし</text>
+
+  <text class="s" x="480" y="394" text-anchor="middle">どの集合に入るかは git が決めるので、否定パターン、.git/info/exclude、core.excludesFile は git と同じように効きます。</text>
+</svg>

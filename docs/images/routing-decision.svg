@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-labelledby="sa-rd-t sa-rd-d">
+  <title id="sa-rd-t">How a shim decides where a command line runs</title>
+  <desc id="sa-rd-d">A shim, named after a tool and first on PATH, checks five things in order. If SENDAWAY_PASSTHROUGH is set to a non-empty value, or no .sendaway.yml is found searching upward from the working directory (the search stops at the parent of $HOME), the real binary replaces the shim untouched. If a local: rule matches, or no remote: rule matches, the real binary runs with SENDAWAY_PASSTHROUGH=1 added, so commands it starts stay local too. Only a remote: match that no local: rule overrides goes to a remote run. Below, the rule [make, test] matches make test, make -j4 test and make -C sub test, but not make tests, because each word is a path.Match glob over one whole argument, matched in order with other arguments allowed between. sendaway which prints the decision without running anything; sendaway run and sendaway local force a side and ignore the rules.</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    .warnt { fill:#a3401f }
+    .s.warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} .warnt{fill:#e08a68} .s.warnt{fill:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-rd-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-rd-b" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="420" rx="12"/>
+  <text class="lbl" x="24" y="31">each check either ends the decision below or passes the command line to the right</text>
+  <path class="ln" d="M142,81 H158" marker-end="url(#sa-rd-a)"/>
+  <path class="ln" d="M308,81 H324" marker-end="url(#sa-rd-a)"/>
+  <path class="ln" d="M484,81 H500" marker-end="url(#sa-rd-a)"/>
+  <path class="ln" d="M634,81 H650" marker-end="url(#sa-rd-a)"/>
+  <path class="ln2" d="M784,81 H800" marker-end="url(#sa-rd-b)"/>
+  <path class="ln" d="M234,120 V148" marker-end="url(#sa-rd-a)"/>
+  <text class="s" x="241" y="138">set</text>
+  <path class="ln" d="M405,120 V148" marker-end="url(#sa-rd-a)"/>
+  <text class="s" x="412" y="138">not found</text>
+  <path class="ln" d="M568,120 V148" marker-end="url(#sa-rd-a)"/>
+  <text class="s" x="575" y="138">match</text>
+  <path class="ln" d="M718,120 V148" marker-end="url(#sa-rd-a)"/>
+  <text class="s" x="725" y="138">no match</text>
+
+  <rect class="card" x="24" y="42" width="118" height="78" rx="7"/>
+  <text class="lbl" x="34" y="60">1</text>
+  <text class="h" x="48" y="60">shim</text>
+  <text class="s" x="34" y="79">linked as the tool</text>
+  <text class="s" x="34" y="93">(argv[0] basename),</text>
+  <text class="s" x="34" y="107">first on PATH</text>
+  <rect class="chip" x="160" y="42" width="148" height="78" rx="7"/>
+  <text class="lbl" x="170" y="60">2</text>
+  <text class="h" x="184" y="60">passthrough?</text>
+  <text class="code" x="170" y="79">SENDAWAY_PASSTHROUGH</text>
+  <text class="s" x="170" y="93">set to a non-empty</text>
+  <text class="s" x="170" y="107">value</text>
+  <rect class="chip" x="326" y="42" width="158" height="78" rx="7"/>
+  <text class="lbl" x="336" y="60">3</text>
+  <text class="h" x="350" y="60">.sendaway.yml?</text>
+  <text class="s" x="336" y="79">searched upward from the</text>
+  <text class="s" x="336" y="93">working directory; stops</text>
+  <text class="s" x="336" y="107">at the parent of $HOME</text>
+  <rect class="chip" x="502" y="42" width="132" height="78" rx="7"/>
+  <text class="lbl" x="512" y="60">4</text>
+  <text class="h" x="526" y="60">local: rule?</text>
+  <text class="s" x="512" y="79">a local: match wins</text>
+  <text class="s" x="512" y="93">over any remote: one</text>
+  <rect class="chip" x="652" y="42" width="132" height="78" rx="7"/>
+  <text class="lbl" x="662" y="60">5</text>
+  <text class="h" x="676" y="60">remote: rule?</text>
+  <text class="s" x="662" y="79">a remote: rule</text>
+  <text class="s" x="662" y="93">matches argv</text>
+  <rect class="alt" x="802" y="42" width="134" height="78" rx="7"/>
+  <text class="lbl" x="812" y="60">6</text>
+  <text class="h" x="826" y="60">remote run</text>
+  <text class="s" x="812" y="79">sync, then run on</text>
+  <text class="s" x="812" y="93">the build host</text>
+
+  <rect class="chip" x="160" y="150" width="324" height="58" rx="7"/>
+  <text class="h" x="172" y="169">exec the real binary, untouched</text>
+  <text class="s" x="172" y="185">it replaces the shim process; PATH is searched</text>
+  <text class="s" x="172" y="199">with the shim directory skipped</text>
+  <rect class="chip" x="502" y="150" width="282" height="58" rx="7"/>
+  <text class="h" x="514" y="169">exec the real binary</text>
+  <text class="code" x="514" y="185">+ SENDAWAY_PASSTHROUGH=1</text>
+  <text class="s" x="514" y="199">so commands it starts stay local too</text>
+
+  <rect class="grp" x="24" y="226" width="520" height="156" rx="8"/>
+  <text class="lbl" x="38" y="246">rule matching</text>
+  <text class="mono" x="150" y="246">remote: [[make, test]]</text>
+  <text class="s" x="38" y="264">the program word equals the basename of argv[0], compared literally;</text>
+  <text class="s" x="38" y="278">each later word is a path.Match glob over one whole argument, in order</text>
+  <rect class="card" x="38" y="288" width="37" height="18" rx="4"/>
+  <text class="code" x="56.5" y="301" text-anchor="middle">make</text>
+  <rect class="card" x="80" y="288" width="37" height="18" rx="4"/>
+  <text class="code" x="98.5" y="301" text-anchor="middle">test</text>
+  <text class="s" x="214" y="301">matches: both words, in order</text>
+  <rect class="card" x="38" y="311" width="37" height="18" rx="4"/>
+  <text class="code" x="56.5" y="324" text-anchor="middle">make</text>
+  <rect class="chip" x="80" y="311" width="31" height="18" rx="4"/>
+  <text class="code" x="95.5" y="324" text-anchor="middle">-j4</text>
+  <rect class="card" x="116" y="311" width="37" height="18" rx="4"/>
+  <text class="code" x="134.5" y="324" text-anchor="middle">test</text>
+  <text class="s" x="214" y="324">matches: -j4 may sit between</text>
+  <rect class="card" x="38" y="334" width="37" height="18" rx="4"/>
+  <text class="code" x="56.5" y="347" text-anchor="middle">make</text>
+  <rect class="chip" x="80" y="334" width="25" height="18" rx="4"/>
+  <text class="code" x="92.5" y="347" text-anchor="middle">-C</text>
+  <rect class="chip" x="110" y="334" width="31" height="18" rx="4"/>
+  <text class="code" x="125.5" y="347" text-anchor="middle">sub</text>
+  <rect class="card" x="146" y="334" width="37" height="18" rx="4"/>
+  <text class="code" x="164.5" y="347" text-anchor="middle">test</text>
+  <text class="s" x="214" y="347">matches: -C sub may sit between</text>
+  <rect class="card" x="38" y="357" width="37" height="18" rx="4"/>
+  <text class="code" x="56.5" y="370" text-anchor="middle">make</text>
+  <rect class="warn" x="80" y="357" width="44" height="18" rx="4"/>
+  <text class="code" x="102.0" y="370" text-anchor="middle">tests</text>
+  <text class="warnt s" x="214" y="370">no match: test is compared with the whole argument tests</text>
+
+  <rect class="grp" x="556" y="226" width="380" height="156" rx="8"/>
+  <text class="lbl" x="570" y="246">check and override</text>
+  <text class="code" x="570" y="266">sendaway which make test</text>
+  <text class="s" x="570" y="280">prints the decision and its rule, runs nothing:</text>
+  <text class="mono" x="570" y="294">decision: remote (matches remote rule [make, test])</text>
+  <text class="code" x="570" y="318">sendaway run make test</text>
+  <text class="s" x="570" y="332">runs it on the host, ignoring the rules</text>
+  <text class="code" x="570" y="354">sendaway local make test</text>
+  <text class="s" x="570" y="368">runs it locally with SENDAWAY_PASSTHROUGH=1, ignoring the rules</text>
+
+  <text class="s" x="480" y="404" text-anchor="middle">A shim sends a command line to the host only on a remote: match that no local: rule overrides.</text>
+</svg>

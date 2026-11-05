@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 384" width="960" height="384" role="img" aria-labelledby="sa-out-t sa-out-d">
+  <title id="sa-out-t">Where a run can end, and the exit status the caller sees</title>
+  <desc id="sa-out-d">Six run phases in a row, left to right: config and checks, connect over ssh until the host answers hello, sync until the push is done, prepare, the command on the build host, and collecting results. Below each phase is what a failure there produces. A configuration or precondition error exits 125. An unreachable host (DNS, timeout, refused, no route) runs the command locally at nice 10 and returns the local exit code; an authentication or host key failure exits 125 with ssh's own message and never falls back. A sync failure exits 125, and so does a failed prepare command. The command's own exit code N comes back unchanged and appears in the trailer as exit N; a command killed by a signal makes the shim die by the same signal. A refused or failed pull after exit 0 exits 125. If the connection drops during sync, the run exits 125 with nothing ran; if it drops after the push, it exits 125 with result unknown. Exit 125 with no trailer comes from sendaway; a command that exits 125 itself still gets a trailer.</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    .warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .hb    { font-size:12.5px; font-weight:600 }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; fill:#1f2328 }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} .warnt{fill:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e} .code{fill:#e6edf3}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-out-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="384" rx="12"/>
+
+  <!-- condition bands -->
+  <rect class="grp" x="14" y="92" width="932" height="140" rx="8"/>
+  <text class="lbl" x="26" y="108">the step fails or ends</text>
+  <rect class="grp" x="14" y="240" width="932" height="84" rx="8"/>
+  <text class="lbl" x="26" y="256">the connection drops</text>
+
+  <!-- boundaries: hello (fallback ends) and push done (nothing ran / result unknown) -->
+  <path class="seam" d="M356,24 V332"/>
+  <path class="seam" d="M484,24 V332"/>
+  <text class="lbl" x="356" y="346" text-anchor="middle">hello</text>
+  <text class="lbl" x="484" y="346" text-anchor="middle">push done</text>
+
+  <!-- phases -->
+  <path class="ln" d="M148,54 H163" marker-end="url(#sa-out-a)"/>
+  <path class="ln" d="M348,54 H363" marker-end="url(#sa-out-a)"/>
+  <path class="ln" d="M476,54 H491" marker-end="url(#sa-out-a)"/>
+  <path class="ln" d="M604,54 H619" marker-end="url(#sa-out-a)"/>
+  <path class="ln" d="M796,54 H811" marker-end="url(#sa-out-a)"/>
+  <rect class="card" x="24" y="28" width="124" height="52" rx="7"/>
+  <text class="lbl" x="34" y="48">1</text>
+  <text class="h" x="48" y="48">config</text>
+  <text class="s" x="48" y="66">and checks</text>
+  <rect class="card" x="164" y="28" width="184" height="52" rx="7"/>
+  <text class="lbl" x="174" y="48">2</text>
+  <text class="h" x="188" y="48">connect</text>
+  <text class="s" x="188" y="66">ssh, until hello</text>
+  <rect class="card" x="364" y="28" width="112" height="52" rx="7"/>
+  <text class="lbl" x="374" y="48">3</text>
+  <text class="h" x="388" y="48">sync</text>
+  <text class="s" x="388" y="66">until pushed</text>
+  <rect class="card" x="492" y="28" width="112" height="52" rx="7"/>
+  <text class="lbl" x="502" y="48">4</text>
+  <text class="h" x="516" y="48">prepare</text>
+  <text class="s" x="516" y="66">prepare: steps</text>
+  <rect class="card" x="620" y="28" width="176" height="52" rx="7"/>
+  <text class="lbl" x="630" y="48">5</text>
+  <text class="h" x="644" y="48">command</text>
+  <text class="s" x="644" y="66">on the build host</text>
+  <rect class="card" x="812" y="28" width="124" height="52" rx="7"/>
+  <text class="lbl" x="822" y="48">6</text>
+  <text class="h" x="836" y="48">collect</text>
+  <text class="s" x="836" y="66">copy results back</text>
+
+  <!-- outcomes when the step fails or ends -->
+  <rect class="chip" x="24" y="114" width="124" height="52" rx="7"/>
+  <rect class="warn" x="24" y="114" width="124" height="52" rx="7"/>
+  <text class="hb warnt" x="34" y="132">exit 125</text>
+  <text class="s" x="34" y="147">invalid config or</text>
+  <text class="s" x="34" y="160">failed precondition</text>
+  <rect class="alt" x="164" y="114" width="184" height="52" rx="7"/>
+  <text class="hb" x="174" y="132">local exit code</text>
+  <text class="s" x="174" y="147">unreachable (DNS, timeout,</text>
+  <text class="s" x="174" y="160">refused, no route): nice 10</text>
+  <rect class="chip" x="164" y="172" width="184" height="52" rx="7"/>
+  <rect class="warn" x="164" y="172" width="184" height="52" rx="7"/>
+  <text class="hb warnt" x="174" y="190">exit 125</text>
+  <text class="s" x="174" y="205">auth or host key failure:</text>
+  <text class="s" x="174" y="218">ssh's message, no fallback</text>
+  <rect class="chip" x="364" y="114" width="112" height="52" rx="7"/>
+  <rect class="warn" x="364" y="114" width="112" height="52" rx="7"/>
+  <text class="hb warnt" x="374" y="132">exit 125</text>
+  <text class="s" x="374" y="147">sync failed:</text>
+  <text class="s" x="374" y="160">rsync error</text>
+  <rect class="chip" x="492" y="114" width="112" height="52" rx="7"/>
+  <rect class="warn" x="492" y="114" width="112" height="52" rx="7"/>
+  <text class="hb warnt" x="502" y="132">exit 125</text>
+  <text class="s" x="502" y="147">prepare: command</text>
+  <text class="s" x="502" y="160">exited non-zero</text>
+  <rect class="alt" x="620" y="114" width="176" height="52" rx="7"/>
+  <text class="hb" x="630" y="132">exit N</text>
+  <text class="s" x="630" y="147">the command's own code,</text>
+  <text class="s" x="630" y="160">also shown in the trailer</text>
+  <rect class="alt" x="620" y="172" width="176" height="52" rx="7"/>
+  <text class="hb" x="630" y="190">killed by signal N</text>
+  <text class="s" x="630" y="205">the shim dies by</text>
+  <text class="s" x="630" y="218">the same signal</text>
+  <rect class="chip" x="812" y="114" width="124" height="52" rx="7"/>
+  <rect class="warn" x="812" y="114" width="124" height="52" rx="7"/>
+  <text class="hb warnt" x="822" y="132">exit 125</text>
+  <text class="s" x="822" y="147">pull refused or</text>
+  <text class="s" x="822" y="160">failed after exit 0</text>
+
+  <!-- outcomes when the connection drops -->
+  <rect class="chip" x="364" y="264" width="112" height="52" rx="7"/>
+  <rect class="warn" x="364" y="264" width="112" height="52" rx="7"/>
+  <text class="hb warnt" x="374" y="282">exit 125</text>
+  <text class="s" x="374" y="297">lost during sync:</text>
+  <text class="s" x="374" y="310">nothing ran</text>
+  <rect class="chip" x="492" y="264" width="304" height="52" rx="7"/>
+  <rect class="warn" x="492" y="264" width="304" height="52" rx="7"/>
+  <text class="hb warnt" x="502" y="282">exit 125</text>
+  <text class="s" x="502" y="297">connection lost during run — result unknown:</text>
+  <text class="s" x="502" y="310">the command may have run</text>
+
+  <text class="s" x="480" y="372" text-anchor="middle">Exit 125 with no trailer is a sendaway failure; a command that exits 125 itself still gets a trailer reading exit 125</text>
+</svg>

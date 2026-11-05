@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 376" width="960" height="376" role="img" aria-labelledby="sa-col-t sa-col-d">
+  <title id="sa-col-t">What comes back after the command exits</title>
+  <desc id="sa-col-d">Two panels, the build host on the left and the Mac on the right. When the command exits, the host takes one of two branches. On exit 0 it collects the pull: paths: missing paths, symlinks, archives and native binaries (ELF, Mach-O, PE, ar) are refused, and any refusal means nothing is copied and the run exits 125. The accepted files are copied to the same root-relative place in the local project tree, overwriting local files; a destination path that contains a symlink is refused. On a non-zero exit or a signal it collects the artifacts: paths instead: missing paths are skipped, symlinks and native binaries are refused, archives are kept, the total is capped at 64 MiB, and refusals do not change the exit code. Those files go to the artifacts directory of the run record, never into the project tree. Synced files the command changed on the host but that were not collected are named in the warning "remote run modified N synced files (not copied back)", and the next push overwrites them with the local copies. The run record directory holds artifacts/, fetched/ for files brought back by sendaway fetch, output.log and meta.json; the newest 100 records are kept and none older than 14 days.</desc>
+
+  <style>
+    .bg    { fill:#f7f5f1 }
+    .grp   { fill:#edeae4 }
+    .chip  { fill:#ffffff; stroke:#d7d4cd }
+    .card  { fill:#ffffff; stroke:#8a6a1f }
+    .alt   { fill:#ffffff; stroke:#3f6b8a }
+    .seam  { fill:none; stroke:#b8b4ac; stroke-dasharray:6 5 }
+    .rule  { fill:none; stroke:#b8b4ac; stroke-width:1 }
+    .ln    { fill:none; stroke:#8a6a1f; stroke-width:1.4 }
+    .ln2   { fill:none; stroke:#3f6b8a; stroke-width:1.4 }
+    .ah    { fill:#8a6a1f }
+    .ah2   { fill:#3f6b8a }
+    .fill1 { fill:#8a6a1f; opacity:.16 }
+    .fill2 { fill:#3f6b8a; opacity:.16 }
+    .warn  { fill:none; stroke:#a3401f; stroke-width:1.6 }
+    rect.warn { fill:#ffffff }
+    .warnt, text.warnt { fill:#a3401f }
+    text   { font-family:Inter,"Helvetica Neue","Hiragino Sans","Noto Sans JP",Arial,sans-serif; fill:#1f2328 }
+    .h     { font-size:12.5px }
+    .lbl   { font-size:11px; fill:#6e7781; letter-spacing:.06em }
+    .s     { font-size:10.5px; fill:#6e7781 }
+    .mono  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; fill:#8a6a1f }
+    .code  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px }
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0d1117} .grp{fill:#12171d}
+      .chip{fill:#161b22;stroke:#30363d} .card{fill:#161b22;stroke:#d9b45c} .alt{fill:#161b22;stroke:#7fb3d5}
+      .seam{stroke:#484f58} .rule{stroke:#484f58}
+      .ln{stroke:#d9b45c} .ln2{stroke:#7fb3d5} .ah{fill:#d9b45c} .ah2{fill:#7fb3d5}
+      .fill1{fill:#d9b45c} .fill2{fill:#7fb3d5}
+      .warn{stroke:#e08a68} rect.warn{fill:#161b22} .warnt,text.warnt{fill:#e08a68} .mono{fill:#d9b45c}
+      text{fill:#e6edf3} .lbl{fill:#8b949e} .s{fill:#8b949e}
+    }
+  </style>
+
+  <defs>
+    <marker id="sa-col-a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+    <marker id="sa-col-b" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path class="ah2" d="M0,0 L9,4.5 L0,9 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="376" rx="12"/>
+
+  <!-- panels -->
+  <rect class="grp" x="24" y="36" width="560" height="294" rx="10"/>
+  <rect class="grp" x="608" y="36" width="328" height="294" rx="10"/>
+  <text class="lbl" x="40" y="58">build host</text>
+  <text class="lbl" x="624" y="58">Mac</text>
+
+  <!-- connectors, drawn under the boxes -->
+  <path class="ln" d="M192,159 H210 V112 H314" marker-end="url(#sa-col-a)"/>
+  <path class="ln2" d="M210,159 V206 H314" marker-end="url(#sa-col-b)"/>
+  <path class="ln" d="M568,112 H622" marker-end="url(#sa-col-a)"/>
+  <text class="s" x="220" y="105">exit 0</text>
+  <text class="s" x="220" y="199">non-zero or signal</text>
+
+  <!-- build host -->
+  <rect class="card" x="40" y="130" width="152" height="58" rx="7"/>
+  <text class="lbl" x="50" y="150">1</text>
+  <text class="h" x="66" y="150">command exits</text>
+  <text class="s" x="66" y="166">one list is collected,</text>
+  <text class="s" x="66" y="179">chosen by how it ended</text>
+
+  <rect class="card" x="316" y="76" width="252" height="72" rx="7"/>
+  <text class="lbl" x="326" y="96">2a</text>
+  <text class="h" x="350" y="96">pull: paths</text>
+  <text class="s" x="350" y="112">refused: missing, symlinks, archives,</text>
+  <text class="s" x="350" y="125">native binaries (ELF, Mach-O, PE, ar)</text>
+  <text class="s warnt" x="350" y="138">any refusal: nothing copied, exit 125</text>
+
+  <rect class="alt" x="316" y="170" width="252" height="72" rx="7"/>
+  <text class="lbl" x="326" y="190">2b</text>
+  <text class="h" x="350" y="190">artifacts: paths</text>
+  <text class="s" x="350" y="206">missing skipped; symlinks and native</text>
+  <text class="s" x="350" y="219">binaries refused; archives kept</text>
+  <text class="s" x="350" y="232">capped at 64 MiB; exit code unchanged</text>
+
+  <rect class="warn" x="40" y="258" width="528" height="58" rx="7"/>
+  <text class="lbl" x="50" y="278">3</text>
+  <text class="h" x="66" y="278">synced files changed on the host, not collected</text>
+  <text class="code" x="66" y="294">remote run modified N synced files (not copied back)</text>
+  <text class="s" x="66" y="307">printed before the trailer; the next push overwrites them with the local copies</text>
+
+  <!-- Mac -->
+  <rect class="card" x="624" y="76" width="296" height="72" rx="7"/>
+  <text class="h" x="638" y="96">project tree</text>
+  <text class="s" x="638" y="112">the same root-relative paths</text>
+  <text class="s" x="638" y="125">local files are overwritten</text>
+  <text class="s" x="638" y="138">a symlink on the destination path is refused</text>
+
+  <rect class="alt" x="624" y="160" width="296" height="154" rx="7"/>
+  <path class="ln2" d="M568,206 H636" marker-end="url(#sa-col-b)"/>
+  <text class="lbl" x="638" y="178">run record</text>
+  <text class="code" x="718" y="178">sendaway/runs/&lt;id&gt;/</text>
+  <rect class="chip" x="638" y="186" width="134" height="40" rx="5"/>
+  <text class="code" x="648" y="203">artifacts/</text>
+  <text class="s" x="648" y="217">after a failure</text>
+  <rect class="chip" x="778" y="186" width="128" height="40" rx="5"/>
+  <text class="code" x="788" y="203">fetched/</text>
+  <text class="s" x="788" y="217">from sendaway fetch</text>
+  <rect class="chip" x="638" y="234" width="134" height="40" rx="5"/>
+  <text class="code" x="648" y="251">output.log</text>
+  <text class="s" x="648" y="265">everything shown</text>
+  <rect class="chip" x="778" y="234" width="128" height="40" rx="5"/>
+  <text class="code" x="788" y="251">meta.json</text>
+  <text class="s" x="788" y="265">command, exit, times</text>
+  <text class="s" x="638" y="298">newest 100 kept, none older than 14 days</text>
+
+  <text class="s" x="480" y="356" text-anchor="middle">A failed run never writes into the project tree; a successful one writes the pull: paths all or nothing.</text>
+</svg>
