@@ -27,11 +27,18 @@ const rsyncWaitDelay = 5 * time.Second
 // exitVanished is the rsync exit code for "some files vanished before transfer".
 const exitVanished = 24
 
-// Client reaches one host over ssh and rsync.
+// resolveTimeout bounds `ssh -G`, which reads the configuration without connecting.
+const resolveTimeout = 10 * time.Second
+
+// Client reaches one host over ssh and rsync. It must not be copied after first use.
 type Client struct {
 	Host      string // ssh alias
 	SSHConfig string // passed as -F when non-empty
 	StateDir  string // parent of the cm/ control socket directory
+
+	cpOnce sync.Once
+	cp     string
+	cpErr  error
 }
 
 // Session is a running `sendaway remote-exec` on the host.
@@ -63,11 +70,31 @@ func (c *Client) SSHArgs() ([]string, error) {
 }
 
 func (c *Client) options() ([]string, error) {
-	cp, err := ControlPath(c.StateDir, c.Host)
-	if err != nil {
-		return nil, err
+	c.cpOnce.Do(func() { c.cp, c.cpErr = c.controlPath() })
+	if c.cpErr != nil {
+		return nil, c.cpErr
 	}
-	return SSHOptions(cp, c.SSHConfig), nil
+	return SSHOptions(c.cp, c.SSHConfig), nil
+}
+
+// controlPath keys the control socket on the alias and ssh's resolved
+// configuration for it, so an edited Host entry gets a new master instead of
+// reusing one that still points at the old address, port or user.
+func (c *Client) controlPath() (string, error) {
+	args := []string{"-G"}
+	if c.SSHConfig != "" {
+		args = append(args, "-F", c.SSHConfig)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), resolveTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "ssh", append(args, c.Host)...) //nolint:gosec // the alias comes from the user configuration
+	var errOut bytes.Buffer
+	cmd.Stderr = &errOut
+	resolved, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("ssh -G %s: %w: %s", c.Host, err, strings.TrimSpace(errOut.String()))
+	}
+	return ControlPath(c.StateDir, c.Host+"\x00"+string(resolved))
 }
 
 // Open starts `sendaway remote-exec` on the host.

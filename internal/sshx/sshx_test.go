@@ -42,12 +42,13 @@ func TestSSHArgs(t *testing.T) {
 		t.Errorf("options with -F: %q", got)
 	}
 
-	c := &Client{Host: "build01", SSHConfig: "/c/cfg", StateDir: shortStateDir(t)}
+	cfg := writeSSHConfig(t, "Host build01\n  HostName 192.0.2.1\n")
+	c := &Client{Host: "build01", SSHConfig: cfg, StateDir: shortStateDir(t)}
 	args, err := c.SSHArgs()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(args); args[n-1] != "build01" || args[n-2] != "/c/cfg" || args[n-3] != "-F" {
+	if n := len(args); args[n-1] != "build01" || args[n-2] != cfg || args[n-3] != "-F" {
 		t.Errorf("host must be last, after -F, with no --: %q", args)
 	}
 	for _, a := range args {
@@ -163,6 +164,52 @@ func TestClassifyConnectError(t *testing.T) {
 	}
 	if reason, _ := ClassifyConnectError("ssh: connect to host h port 22: Connection refused"); reason != "Connection refused" {
 		t.Errorf("reason = %q", reason)
+	}
+}
+
+// writeSSHConfig writes an ssh configuration file and returns its path.
+func writeSSHConfig(t *testing.T, content string) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "ssh_config")
+	if err := os.WriteFile(p, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// controlPathOf returns the ControlPath option a fresh Client passes to ssh.
+func controlPathOf(t *testing.T, state, cfg string) string {
+	t.Helper()
+	args, err := (&Client{Host: "build01", SSHConfig: cfg, StateDir: state}).SSHArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range args {
+		if p, ok := strings.CutPrefix(a, "ControlPath="); ok {
+			return p
+		}
+	}
+	t.Fatalf("no ControlPath in %q", args)
+	return ""
+}
+
+func TestClientControlPathFollowsConfig(t *testing.T) {
+	state := shortStateDir(t)
+	cfg := writeSSHConfig(t, "Host build01\n  HostName 192.0.2.1\n  Port 22\n")
+	first := controlPathOf(t, state, cfg)
+	if again := controlPathOf(t, state, cfg); again != first {
+		t.Errorf("same configuration, different socket: %s, %s", first, again)
+	}
+	if err := os.WriteFile(cfg, []byte("Host build01\n  HostName 192.0.2.1\n  Port 2222\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if moved := controlPathOf(t, state, cfg); moved == first {
+		t.Errorf("an edited Host entry must get its own socket: %s", moved)
+	}
+
+	bad := writeSSHConfig(t, "Host build01\n  NoSuchOption yes\n")
+	if _, err := (&Client{Host: "build01", SSHConfig: bad, StateDir: state}).SSHArgs(); err == nil || !strings.Contains(err.Error(), "ssh -G build01") {
+		t.Errorf("invalid configuration: %v", err)
 	}
 }
 

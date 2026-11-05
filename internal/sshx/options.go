@@ -36,11 +36,11 @@ func SSHOptions(controlPath, sshConfig string) []string {
 	return opts
 }
 
-// ControlPath returns <stateDir>/cm/<sha256(host)[:16]>. It creates the cm directory
-// with mode 0700, and fails if an existing one has other permissions or if the
-// resulting path is too long for ssh.
-func ControlPath(stateDir, host string) (string, error) {
-	sum := sha256.Sum256([]byte(host))
+// ControlPath returns <stateDir>/cm/<sha256(key)[:16]>, where key identifies one
+// connection. It creates the cm directory with mode 0700, and fails if an
+// existing one has other permissions or if the resulting path is too long for ssh.
+func ControlPath(stateDir, key string) (string, error) {
+	sum := sha256.Sum256([]byte(key))
 	dir := filepath.Join(stateDir, "cm")
 	path := filepath.Join(dir, hex.EncodeToString(sum[:])[:16])
 	if len(path) > maxControlPath {
