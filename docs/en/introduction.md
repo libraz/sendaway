@@ -6,7 +6,7 @@ A project opts in with one `.sendaway.yml` at its git top level. Commands that m
 
 ## Mental model
 
-![A command typed on the Mac passes through a PATH shim, is matched against the project rules, and either execs locally or syncs the tree to the build host, runs there in its own process group, streams output frames back and collects files.](../images/run-flow.svg)
+![A command typed on the Mac passes through a PATH shim and is matched against the project rules; it either runs locally or has its filtered file set synced to the build host, runs there in its own process group, and streams output frames back before files are collected and the run is recorded.](../images/run-flow.svg)
 
 1. **Shim.** The `sendaway` binary is linked under the names of the commands it should intercept (`make`, `go`, `yarn` and so on). When the binary runs under any other name than `sendaway`, it acts as a shim for that command.
 2. **Rule match.** The shim finds `.sendaway.yml` above the current directory and compares the command line with the `remote:` and `local:` rules. A `local:` match wins. A command that matches nothing, or a directory with no `.sendaway.yml`, runs the real binary directly.
@@ -36,4 +36,4 @@ Every run is recorded locally with its output, so a result can be read again wit
 - [Security](security.md) lists what reaches the host and what stays local.
 - [Build host](build-host.md) describes the Linux side.
 - [Coding agents](coding-agents.md) covers Claude Code and Codex.
-- [Command reference](cli.md), [output and exit codes](output-and-exit-codes.md) and the [FAQ](faq.md) are reference pages.
+- [Command reference](cli.md), [output and exit codes](output-and-exit-codes.md), the [glossary](glossary.md) and the [FAQ](faq.md) are reference pages.
