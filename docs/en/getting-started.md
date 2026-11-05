@@ -86,7 +86,7 @@ Put that line at the end of `~/.zshrc`, after any `mise activate`, so the shim d
 sendaway doctor
 ```
 
-`doctor` checks that each shim comes first on PATH, the local rsync, the control directory, and for each configured host: reachability, that ssh prints nothing on stdout, the remote sendaway version and protocol, the clock, and that each shim name resolves in the host's login shell. Every line starts with `ok` or `FAIL`. Fix every `FAIL` before continuing; the exit code is 125 when any check fails.
+`doctor` checks that each shim comes first on PATH, the local rsync, the control directory, and for each configured host: reachability, that ssh prints nothing on stdout, the remote sendaway version and protocol, the clock, and that each shim name resolves in the host's login shell. Every line starts with `ok`, `warn` or `FAIL`. Fix every `FAIL` before continuing; the exit code is 125 when any check fails. A `warn` names a shim whose tool the host lacks, which matters only if a project sends that command there.
 
 ## 8. Run a first command
 

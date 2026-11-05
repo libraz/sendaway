@@ -71,13 +71,13 @@ Without names it links `make cmake ctest go cargo yarn npm pnpm bun`. A name tha
 sendaway doctor
 ```
 
-Prints findings in sections, each line starting with `ok` or `FAIL`:
+Prints findings in sections, each line starting with `ok`, `warn` or `FAIL`:
 
 - `shims (<dir>)`: for each installed shim, whether it comes first on PATH. Messages: `<name>: the shim comes first on PATH`, `<name>: <path> comes before the shim; put <dir> first in PATH`, `<name>: not found on PATH; add <dir> to PATH`. With no shims: `no shims installed; run 'sendaway install-shims'`.
 - `local tools`: the local rsync (`rsync <version> (protocol <n>)`, failing when the protocol is below 31) and the `cm` control directory (`<dir> is private (0700)`, `<dir> does not exist yet`, or a failure if the mode is not 0700).
 - `host <name>` for each distinct host in the user configuration: the checks listed in [Build host](build-host.md#what-doctor-checks-on-the-host). With no host configured: `no host configured in <path>`.
 
-Each ssh probe times out after 30 s. Exit 0 when every line is `ok`, 125 when any is `FAIL`.
+Each ssh probe times out after 30 s. Exit 0 when no line is `FAIL`, 125 when any is; `warn` lines do not change the exit code.
 
 ## which
 
@@ -123,7 +123,7 @@ sendaway fetch <path...>
 
 Copies root-relative paths from the host's copy of the project into the `fetched/` directory of the most recent recorded run (`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`), keeping their relative layout. The local tree is not changed. The most recent run is the newest record on this machine, which is not necessarily one of this project.
 
-The same checks as `pull:` apply: directories are copied recursively; symlinks, native binaries and archives are refused (`pull refused: <path> (<reason>)`); a missing path is an error. Prints nothing on success. Exit 0, or 125 on failure, including `no runs recorded` when no run exists. Fetch waits for the host's lock for the project, so it queues behind a running command.
+The same checks as `pull:` apply: directories are copied recursively; missing paths, symlinks, native binaries and archives are refused (`pull refused: <path> (<reason>)`). Prints nothing on success. Exit 0, or 125 on failure, including `no runs recorded` when no run exists. Fetch waits for the host's lock for the project, so it queues behind a running command.
 
 ## runs
 
@@ -153,7 +153,7 @@ command:  make test
 cwd:      /Users/you/Projects/app
 host:     build01
 started:  2025-01-01T12:00:00+09:00
-duration: 42.3s (sync 400ms)
+duration: 42.3s (sync 0.42s)
 result:   exit 1
 modified: src/gen.c, src/gen.h
 log:      /Users/you/.local/state/sendaway/runs/r-20250101-120000-ab12/output.log

@@ -36,7 +36,7 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 
 ## 失敗の行（終了コード 125）
 
-失敗した実行は、次のいずれかを最後の行として表示し、終了コード 125 で終わります。トレーラーは出力されません。
+失敗した実行は、次のいずれかを最後の行として表示し、終了コード 125 で終わります。トレーラーは出力されません。`pull` の行はコマンドが成功した後に出るので、末尾に `— the command exited 0 · run <id> · log <path>` が付きます。
 
 | 行 | 原因 |
 |---|---|
@@ -56,8 +56,7 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 | `remote clock differs from local by <d> (limit <d>); sync the clocks` | 時計の差が 60 秒を超えた。 |
 | `remote lock: <error>` | ホストのロックを取得できなかった。 |
 | `prepare <command> exited <n>` | `prepare:` のコマンドが失敗した。 |
-| `pull path does not exist: <path>` | `pull:` のパスがホストにない。 |
-| `pull refused: <path> (<reason>), ...` | `pull:` のパスがシンボリックリンク、ネイティブバイナリ、アーカイブである。何もコピーされない。 |
+| `pull refused: <path> (<reason>), ...` | `pull:` のパスがホストにない（`missing`）、シンボリックリンク（`symlink`）、ネイティブバイナリ（`elf`、`macho`、`pe`、`ar`）、アーカイブ（`archive`）である。何もコピーされない。 |
 | `pull destination <path> is a symlink; refusing to write through it` | ローカルの宛先にシンボリックリンクが含まれる。 |
 | `pull failed: <error>` | 回収のコピーが失敗した。 |
 | `protocol error from remote-exec: <error>` | ホストが想定外のフレームを送った。 |
@@ -82,6 +81,6 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 - コマンドが正常に終了した場合は、その終了コードが返ります。コマンド自身が 125 を選んだ場合も同じです。コマンドの 125 と sendaway の 125 は、トレーラーの有無で区別できます。
 - ホスト上でシグナルによって死んだコマンドは `killed by signal <n>` と報告され、shim もそのシグナルで死にます。シェルから見た終了ステータスは、128 にシグナル番号を足した値です。
 - shim への割り込み（Ctrl-C、SIGTERM、SIGHUP）は、リモートのプロセスグループを停止し、`killed by signal <n>` のトレーラーを表示して、shim をそのシグナルで終了させます。
-- `pull:` のパスの回収中に失敗した場合（`pull refused`、`pull path does not exist`、`pull failed`）は、コマンド自身が 0 で終了していても、終了コードは 125 です。
-- `sendaway doctor` は、1 つでも `FAIL` があれば 125 で終了します。
+- `pull:` のパスの回収中に失敗した場合（`pull refused`、`pull destination`、`pull failed`）は、コマンド自身が 0 で終了していても、終了コードは 125 です。
+- `sendaway doctor` は、1 つでも `FAIL` があれば 125 で終了します。`warn` は数えません。
 - ローカル実行へフォールバックした実行の終了コードは、ローカルのコマンドのものです。

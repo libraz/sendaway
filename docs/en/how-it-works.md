@@ -30,7 +30,7 @@ The manifest fails the run on a git submodule, a nested repository, or a file na
 
 ## 4. Session
 
-The run uses one ssh connection, started as `sendaway remote-exec` on the host and kept in the background for ten minutes by ssh's control master so later runs reconnect quickly. The session proceeds in this order:
+The run uses one ssh connection, started as `sendaway remote-exec` on the host and kept in the background for ten minutes by ssh's control master so later runs reconnect quickly. The control socket is named after the alias and the configuration `ssh -G` resolves for it, so editing the `Host` entry makes the next run open a new connection; the old one exits once idle. The session proceeds in this order:
 
 1. **hello.** The host sends its protocol, version, OS and architecture. If the protocol differs, the run stops with the message `protocol mismatch: local sendaway <version> speaks protocol <n>, remote sendaway <version> speaks protocol <n>; install the same version on both sides`.
 2. **request.** The shim sends one JSON line: the run id, root, working directory, command, forwarded environment, manifest, prepare rules, `pull:` and `artifacts:` paths, whether output is merged, and the send time.
@@ -85,7 +85,7 @@ It also lists the synced files whose size or modification time changed, or that 
 1. The modified-file warning when that list is not empty: `remote run modified N synced files (not copied back): <up to five paths> … and K more — add this target to local: or list the files in pull:`. A command that rewrites tracked files (a formatter, a code generator) belongs in `local:`, or its outputs in `pull:`.
 2. The trailer: `[sendaway] <host> exit N · <seconds>s · run <id> · log <path>`, with `killed by signal N` in place of `exit N` when the command died by a signal.
 
-A failure while collecting, such as a refused path in `pull:`, prints the reason, records the run as failed and exits with 125.
+A failure while collecting, such as a refused path in `pull:`, prints the reason followed by `— the command exited 0 · run <id> · log <path>`, records the run as failed and exits with 125.
 
 The shim then ends the way the command did: with its exit code, or by dying with the same signal. If the signal is ignored in the shim's process, it exits with 128 plus the signal number instead.
 

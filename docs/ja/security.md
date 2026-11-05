@@ -32,7 +32,7 @@ rc ファイルのうち `.npmrc` と `.yarnrc.yml` の 2 つは、内容で判�
 
 `.sendaway.yml` の `exclude:` にあるパスは、同じセットに加えられます。名前のルールは固定で、無効にはできません。
 
-送られなかったファイルは、実行の開始時に stderr にすべて列挙されます。
+名前が一致したディレクトリと `exclude:` のエントリは丸ごと外すので、ホストには空のディレクトリとしても作られません。送られなかったファイルは、実行の開始時に stderr にすべて列挙されます。
 
 ```
 [sendaway] not sent (secret-like): .env, config/server.key

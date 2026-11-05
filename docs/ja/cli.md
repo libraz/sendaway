@@ -71,13 +71,13 @@ export PATH="/Users/you/.local/share/sendaway/bin:$PATH"
 sendaway doctor
 ```
 
-結果をセクションごとに表示します。各行は `ok` か `FAIL` で始まります。
+結果をセクションごとに表示します。各行は `ok`、`warn`、`FAIL` のいずれかで始まります。
 
 - `shims (<dir>)`：インストール済みの各 shim が PATH の先頭にあるかどうか。メッセージは `<name>: the shim comes first on PATH`、`<name>: <path> comes before the shim; put <dir> first in PATH`、`<name>: not found on PATH; add <dir> to PATH` です。shim が 1 つもなければ `no shims installed; run 'sendaway install-shims'` と表示されます。
 - `local tools`：ローカルの rsync（`rsync <version> (protocol <n>)`。プロトコルが 31 未満なら失敗）と、`cm` control ディレクトリ（`<dir> is private (0700)`、`<dir> does not exist yet`、モードが 0700 でなければ失敗）。
 - `host <name>`：ユーザー設定にある重複しない各ホストについて、[ビルドホスト](build-host.md#doctor-がホストで確認する項目)に挙げた確認項目。ホストが設定されていなければ `no host configured in <path>` と表示されます。
 
-ssh のプローブは、それぞれ 30 秒でタイムアウトします。すべての行が `ok` なら終了コードは 0、1 行でも `FAIL` があれば 125 です。
+ssh のプローブは、それぞれ 30 秒でタイムアウトします。`FAIL` の行がなければ終了コードは 0、1 行でもあれば 125 です。`warn` の行は終了コードに影響しません。
 
 ## which
 
@@ -123,7 +123,7 @@ sendaway fetch <path...>
 
 ホスト上のプロジェクトのコピーから、ルート相対のパスを、最新の記録済み実行の `fetched/` ディレクトリ（`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`）へ、相対的な配置を保ったままコピーします。ローカルのツリーは変更されません。最新の実行とは、このマシンで最も新しい記録であり、このプロジェクトのものとは限りません。
 
-`pull:` と同じ検査が適用されます。ディレクトリは再帰的にコピーされ、シンボリックリンク、ネイティブバイナリ、アーカイブは拒否され（`pull refused: <path> (<reason>)`）、存在しないパスはエラーです。成功時は何も表示しません。終了コードは 0 です。失敗した場合は 125 で、実行が 1 つも記録されていなければ `no runs recorded` になります。fetch はプロジェクトのホストのロックを待つので、実行中のコマンドの後ろに並びます。
+`pull:` と同じ検査が適用されます。ディレクトリは再帰的にコピーされ、存在しないパス、シンボリックリンク、ネイティブバイナリ、アーカイブは拒否されます（`pull refused: <path> (<reason>)`）。成功時は何も表示しません。終了コードは 0 です。失敗した場合は 125 で、実行が 1 つも記録されていなければ `no runs recorded` になります。fetch はプロジェクトのホストのロックを待つので、実行中のコマンドの後ろに並びます。
 
 ## runs
 
@@ -153,7 +153,7 @@ command:  make test
 cwd:      /Users/you/Projects/app
 host:     build01
 started:  2025-01-01T12:00:00+09:00
-duration: 42.3s (sync 400ms)
+duration: 42.3s (sync 0.42s)
 result:   exit 1
 modified: src/gen.c, src/gen.h
 log:      /Users/you/.local/state/sendaway/runs/r-20250101-120000-ab12/output.log

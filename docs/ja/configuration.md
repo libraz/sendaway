@@ -83,8 +83,7 @@ prepare:
 
 `pull` は、コマンドが終了コード 0 で終わった後に、ホストからローカルツリーの同じ場所へコピーして戻すルート相対のパスを列挙します。ディレクトリは再帰的にコピーされます。
 
-- ホストに存在しないパスがあると、実行は終了コード 125 で失敗します（`pull path does not exist: <path>`）。
-- シンボリックリンク、ネイティブバイナリ（ELF、Mach-O、PE、`ar` アーカイブ）、アーカイブ（zip、gzip、xz、zstd、bzip2、tar）は拒否されます。1 つでも拒否されると何もコピーされず、実行は `pull refused: <path> (<reason>), ...` で失敗します。
+- ホストに存在しないパス、シンボリックリンク、ネイティブバイナリ（ELF、Mach-O、PE、`ar` アーカイブ）、アーカイブ（zip、gzip、xz、zstd、bzip2、tar）は拒否されます。1 つでも拒否されると何もコピーされず、実行は終了コード 125 と `pull refused: <path> (<reason>), ... — the command exited 0 · run <id> · log <path>` で失敗します。
 - ローカルでパスの途中にシンボリックリンクを含む宛先は、`pull destination <path> is a symlink; refusing to write through it` で拒否されます。
 - コピーされたファイルはローカルのファイルを上書きします。pull で戻ってきたファイルは、変更ファイルの警告の数に含まれません。
 

@@ -32,7 +32,7 @@ Two rc files are judged by content: `.npmrc` and `.yarnrc.yml`. If the file cont
 
 Paths under `exclude:` in `.sendaway.yml` are added to the same set. The name rules are fixed and cannot be turned off.
 
-Every withheld file is listed on stderr at the start of the run:
+A directory whose name matches, or an `exclude:` entry, is left out as a whole, so it is not created on the host even as an empty directory. Every withheld file is listed on stderr at the start of the run:
 
 ```
 [sendaway] not sent (secret-like): .env, config/server.key

@@ -30,7 +30,7 @@ The sendaway on the host must speak the same protocol as the local one. `sendawa
 
 ## What doctor checks on the host
 
-For each host in the user configuration (the default host and every route host) `sendaway doctor` runs these probes over ssh and prints `ok` or `FAIL` for each:
+For each host in the user configuration (the default host and every route host) `sendaway doctor` runs these probes over ssh and prints `ok`, `warn` or `FAIL` for each:
 
 | Check | Passing line |
 |---|---|
@@ -42,6 +42,6 @@ For each host in the user configuration (the default host and every route host) 
 
 A failed connection stops the checks for that host and prints the ssh error. A `Host key verification failed` error adds the hint `run 'ssh <host>' by hand once to add the host to known_hosts`.
 
-The shim probe covers every shim in the shim directory, not only the commands a project uses. A shim for a tool that is not installed on the host reports `<host>: <name>: not found` as a failure. Either install the tool on the host or delete its link from the shim directory.
+The shim probe covers every shim in the shim directory, not only the commands a project uses. A shim for a tool that is not installed on the host reports `<host>: <name>: not found; a run that sends <name> here fails` as a warning, which does not fail doctor: a host serves only the projects routed to it. Install the tool if a project sends that command to this host.
 
 doctor does not check rsync on the host, the parent path, sshd settings or sudo rights. Those are covered by the checklist above.

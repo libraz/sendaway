@@ -36,7 +36,7 @@ The trailer is the last line of a completed run. It is also printed after an int
 
 ## Failure lines (exit 125)
 
-A failing run prints one of these as its last line and exits with 125. No trailer is printed.
+A failing run prints one of these as its last line and exits with 125. No trailer is printed. The `pull` lines come after the command has succeeded, so they end with `— the command exited 0 · run <id> · log <path>`.
 
 | Line | Cause |
 |---|---|
@@ -56,8 +56,7 @@ A failing run prints one of these as its last line and exits with 125. No traile
 | `remote clock differs from local by <d> (limit <d>); sync the clocks` | Clock difference over 60 s. |
 | `remote lock: <error>` | The host's lock could not be taken. |
 | `prepare <command> exited <n>` | A `prepare:` command failed. |
-| `pull path does not exist: <path>` | A `pull:` path is missing on the host. |
-| `pull refused: <path> (<reason>), ...` | `pull:` paths that are symlinks, native binaries or archives. Nothing is copied. |
+| `pull refused: <path> (<reason>), ...` | `pull:` paths that are missing (`missing`), symlinks (`symlink`), native binaries (`elf`, `macho`, `pe`, `ar`) or archives (`archive`). Nothing is copied. |
 | `pull destination <path> is a symlink; refusing to write through it` | A local destination contains a symlink. |
 | `pull failed: <error>` | The copy back failed. |
 | `protocol error from remote-exec: <error>` | The host sent an unexpected frame. |
@@ -82,6 +81,6 @@ Details:
 - A command that exits normally gives that code, including 125 itself if the command chooses it. Check for the trailer to tell a command's 125 from sendaway's.
 - A command killed by a signal on the host is reported as `killed by signal <n>`, and the shim dies by that signal. Its exit status is then 128 plus the signal number as the shell sees it.
 - An interrupt of the shim (Ctrl-C, SIGTERM, SIGHUP) stops the remote process group, prints the trailer with `killed by signal <n>`, and ends the shim by that signal.
-- A failure while collecting `pull:` paths (`pull refused`, `pull path does not exist`, `pull failed`) exits with 125 even when the command itself exited 0.
-- `sendaway doctor` exits with 125 when any check is `FAIL`.
+- A failure while collecting `pull:` paths (`pull refused`, `pull destination`, `pull failed`) exits with 125 even when the command itself exited 0.
+- `sendaway doctor` exits with 125 when any check is `FAIL`. `warn` lines do not count.
 - A run that falls back to a local execution has the exit code of the local command.

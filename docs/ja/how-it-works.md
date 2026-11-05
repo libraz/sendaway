@@ -30,7 +30,7 @@ shim は git を使って 3 つのセットを作ります。そのため、否�
 
 ## 4. セッション
 
-実行には ssh 接続を 1 本使います。接続はホスト上で `sendaway remote-exec` として起動され、次回以降の実行がすばやく再接続できるよう、ssh の control master によって 10 分間バックグラウンドで維持されます。セッションは次の順で進みます。
+実行には ssh 接続を 1 本使います。接続はホスト上で `sendaway remote-exec` として起動され、次回以降の実行がすばやく再接続できるよう、ssh の control master によって 10 分間バックグラウンドで維持されます。control ソケットの名前は、ホストの別名と `ssh -G` がその別名について解決した設定から決まります。このため `Host` エントリを編集すると次の実行は新しい接続を開き、古い接続はアイドルのまま時間が経てば終了します。セッションは次の順で進みます。
 
 1. **hello**：ホストが、プロトコル、バージョン、OS、アーキテクチャを送ります。プロトコルが異なる場合、実行は `protocol mismatch: local sendaway <version> speaks protocol <n>, remote sendaway <version> speaks protocol <n>; install the same version on both sides` というメッセージで停止します。
 2. **request**：shim が JSON を 1 行送ります。内容は、実行 ID、ルート、作業ディレクトリ、コマンド、転送する環境、マニフェスト、prepare のルール、`pull:` と `artifacts:` のパス、出力を統合するかどうか、送信時刻です。
@@ -85,7 +85,7 @@ shim は 5 秒ごとに ping を送ります。ホストは、request の後の�
 1. その一覧が空でなければ、変更ファイルの警告：`remote run modified N synced files (not copied back): <up to five paths> … and K more — add this target to local: or list the files in pull:`。追跡ファイルを書き換えるコマンド（フォーマッタ、コードジェネレータ）は `local:` に入れるか、その出力を `pull:` に入れます。
 2. トレーラー：`[sendaway] <host> exit N · <seconds>s · run <id> · log <path>`。コマンドがシグナルで死んだ場合は、`exit N` の代わりに `killed by signal N` となります。
 
-`pull:` で拒否されたパスのように、回収中に失敗すると、理由を表示し、実行を失敗として記録して、終了コード 125 で終了します。
+`pull:` で拒否されたパスのように、回収中に失敗すると、理由に続けて `— the command exited 0 · run <id> · log <path>` を表示し、実行を失敗として記録して、終了コード 125 で終了します。
 
 その後 shim は、コマンドと同じ形で終了します。コマンドの終了コードで終了するか、同じシグナルで自分自身を終了させます。shim のプロセスでそのシグナルが無視されている場合は、代わりに 128 にシグナル番号を足した値で終了します。
 

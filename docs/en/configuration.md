@@ -83,8 +83,7 @@ Validation errors: `prepare rule needs a non-empty when`, `prepare rule needs a 
 
 `pull` lists root-relative paths copied from the host back into the same place in the local tree after a command exits with code 0. A directory is copied recursively.
 
-- A path that does not exist on the host fails the run with exit 125 (`pull path does not exist: <path>`).
-- Symlinks, native binaries (ELF, Mach-O, PE, `ar` archives) and archives (zip, gzip, xz, zstd, bzip2, tar) are refused. If anything is refused, nothing is copied and the run fails with `pull refused: <path> (<reason>), ...`.
+- Paths missing on the host, symlinks, native binaries (ELF, Mach-O, PE, `ar` archives) and archives (zip, gzip, xz, zstd, bzip2, tar) are refused. If anything is refused, nothing is copied and the run fails with exit 125 and `pull refused: <path> (<reason>), ... — the command exited 0 · run <id> · log <path>`.
 - A destination whose path contains a symlink locally is refused with `pull destination <path> is a symlink; refusing to write through it`.
 - Copied files overwrite local files. Files that a pull brings back are not counted in the modified-file warning.
 
