@@ -197,6 +197,8 @@ func (s *Store) List() ([]Meta, error) {
 		}
 		out = append(out, m)
 	}
+	// Ids order runs only to the second; within one the random suffix decides.
+	sort.SliceStable(out, func(i, j int) bool { return out[i].StartUnixMS > out[j].StartUnixMS })
 	return out, nil
 }
 

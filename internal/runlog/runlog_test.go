@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -95,5 +96,31 @@ func TestTreeChanged(t *testing.T) {
 	}
 	if !m.TreeChanged("abd") {
 		t.Error("different fingerprint not reported as changed")
+	}
+}
+
+func TestLatestWithinOneSecond(t *testing.T) {
+	state := t.TempDir()
+	s := Open(state, nil)
+	// Same second, so the id order is decided by the random suffix alone.
+	for _, r := range []struct {
+		id    string
+		start int64
+	}{{"r-20261001-120000-ffff", 1000}, {"r-20261001-120000-0000", 1500}} {
+		dir := filepath.Join(state, "runs", r.id)
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		meta := []byte(`{"id":"` + r.id + `","start_unix_ms":` + strconv.FormatInt(r.start, 10) + `}`)
+		if err := os.WriteFile(filepath.Join(dir, metaName), meta, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m, err := s.Latest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.ID != "r-20261001-120000-0000" {
+		t.Fatalf("latest = %s, want the run that started last", m.ID)
 	}
 }
