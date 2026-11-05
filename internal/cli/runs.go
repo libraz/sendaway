@@ -67,9 +67,11 @@ func result(m runlog.Meta) string {
 	return fmt.Sprintf("exit %d", m.Code)
 }
 
-func duration(ms int64) string {
-	return (time.Duration(ms) * time.Millisecond).Round(100 * time.Millisecond).String()
-}
+// duration formats a run's duration as the trailer does.
+func duration(ms int64) string { return fmt.Sprintf("%.1fs", float64(ms)/1000) }
+
+// syncDuration formats a sync time as the start line does.
+func syncDuration(ms int64) string { return fmt.Sprintf("%.2fs", float64(ms)/1000) }
 
 func writeRuns(out io.Writer, ms []runlog.Meta, fp func(string) (string, bool)) {
 	if len(ms) == 0 {
@@ -105,7 +107,7 @@ func writeLast(out io.Writer, store *runlog.Store, m runlog.Meta, fp func(string
 	p("cwd:      %s", m.Cwd)
 	p("host:     %s", m.Host)
 	p("started:  %s", time.UnixMilli(m.StartUnixMS).Format(time.RFC3339))
-	p("duration: %s (sync %s)", duration(m.DurationMS), duration(m.SyncMS))
+	p("duration: %s (sync %s)", duration(m.DurationMS), syncDuration(m.SyncMS))
 	p("result:   %s", result(m))
 	if m.Error != "" {
 		p("error:    %s", m.Error)

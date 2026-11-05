@@ -299,6 +299,21 @@ func TestDoctorPathHead(t *testing.T) {
 	if f := versionFinding("h", "bash: sendaway: command not found"); f.ok {
 		t.Errorf("missing sendaway accepted: %v", f)
 	}
+	if f := toolFinding("h", "/usr/bin/make"); f.String() != "ok    h: /usr/bin/make" {
+		t.Errorf("found tool: %q", f)
+	}
+	if f := toolFinding("h", "bun: not found"); !f.ok || f.String() != "warn  h: bun: not found; a run that sends bun here fails" {
+		t.Errorf("missing tool must warn without failing: %q (ok %v)", f, f.ok)
+	}
+}
+
+func TestDuration(t *testing.T) {
+	if got := duration(35_312); got != "35.3s" {
+		t.Errorf("duration = %q", got)
+	}
+	if got := syncDuration(64); got != "0.06s" {
+		t.Errorf("sync = %q", got)
+	}
 }
 
 func TestShellArgv(t *testing.T) {

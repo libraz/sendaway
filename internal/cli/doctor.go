@@ -27,14 +27,19 @@ const (
 	maxClockSkew = 2 * time.Second
 )
 
-// finding is one line of the doctor report.
+// finding is one line of the doctor report. A warning is ok: it is shown but
+// does not fail doctor.
 type finding struct {
 	ok   bool
+	warn bool
 	text string
 }
 
 func (f finding) String() string {
-	if f.ok {
+	switch {
+	case f.warn:
+		return "warn  " + f.text
+	case f.ok:
 		return "ok    " + f.text
 	}
 	return "FAIL  " + f.text
@@ -45,7 +50,7 @@ func (f finding) String() string {
 func pathHead(name, shimDir, pathList string) finding {
 	shimInfo, err := os.Stat(shimDir)
 	if err != nil {
-		return finding{false, fmt.Sprintf("%s: shim directory %s: %v", name, shimDir, err)}
+		return finding{text: fmt.Sprintf("%s: shim directory %s: %v", name, shimDir, err)}
 	}
 	for _, entry := range filepath.SplitList(pathList) {
 		if entry == "" {
@@ -57,19 +62,19 @@ func pathHead(name, shimDir, pathList string) finding {
 			continue
 		}
 		if di, err := os.Stat(entry); err == nil && os.SameFile(di, shimInfo) { //nolint:gosec // PATH entries are probed by design
-			return finding{true, name + ": the shim comes first on PATH"}
+			return finding{ok: true, text: name + ": the shim comes first on PATH"}
 		}
-		return finding{false, fmt.Sprintf("%s: %s comes before the shim; put %s first in PATH", name, cand, shimDir)}
+		return finding{text: fmt.Sprintf("%s: %s comes before the shim; put %s first in PATH", name, cand, shimDir)}
 	}
-	return finding{false, fmt.Sprintf("%s: not found on PATH; add %s to PATH", name, shimDir)}
+	return finding{text: fmt.Sprintf("%s: not found on PATH; add %s to PATH", name, shimDir)}
 }
 
 // rsyncFinding turns the result of sshx.DetectRsync into a finding.
 func rsyncFinding(v sshx.RsyncVersion, err error) finding {
 	if err != nil {
-		return finding{false, err.Error()}
+		return finding{text: err.Error()}
 	}
-	return finding{true, fmt.Sprintf("rsync %s (protocol %d)", v.Version, v.Protocol)}
+	return finding{ok: true, text: fmt.Sprintf("rsync %s (protocol %d)", v.Version, v.Protocol)}
 }
 
 // cmFinding checks that the control socket directory is private.
@@ -77,23 +82,23 @@ func cmFinding(stateDir string) finding {
 	dir := filepath.Join(stateDir, "cm")
 	fi, err := os.Lstat(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		return finding{true, dir + " does not exist yet"}
+		return finding{ok: true, text: dir + " does not exist yet"}
 	}
 	if err != nil {
-		return finding{false, err.Error()}
+		return finding{text: err.Error()}
 	}
 	if !fi.IsDir() || fi.Mode().Perm() != 0o700 {
-		return finding{false, fmt.Sprintf("%s must be a directory with mode 0700 (is %s)", dir, fi.Mode())}
+		return finding{text: fmt.Sprintf("%s must be a directory with mode 0700 (is %s)", dir, fi.Mode())}
 	}
-	return finding{true, dir + " is private (0700)"}
+	return finding{ok: true, text: dir + " is private (0700)"}
 }
 
 // silentFinding checks that `ssh <host> true` printed nothing on stdout.
 func silentFinding(host, stdout string) finding {
 	if stdout == "" {
-		return finding{true, host + ": ssh prints nothing on stdout"}
+		return finding{ok: true, text: host + ": ssh prints nothing on stdout"}
 	}
-	return finding{false, fmt.Sprintf("%s: ssh true printed %q on stdout; rc or profile output corrupts the protocol", host, truncate(stdout, 60))}
+	return finding{text: fmt.Sprintf("%s: ssh true printed %q on stdout; rc or profile output corrupts the protocol", host, truncate(stdout, 60))}
 }
 
 // connectHint explains how to recover from an ssh failure, or returns "".
@@ -108,9 +113,9 @@ func connectHint(host, stderr string) string {
 func skewFinding(host string, remoteUnix int64, now time.Time) finding {
 	skew := time.Duration(math.Abs(float64(now.Unix()-remoteUnix))) * time.Second
 	if skew > maxClockSkew {
-		return finding{false, fmt.Sprintf("%s: clock differs by %s", host, skew)}
+		return finding{text: fmt.Sprintf("%s: clock differs by %s", host, skew)}
 	}
-	return finding{true, fmt.Sprintf("%s: clock within %s", host, maxClockSkew)}
+	return finding{ok: true, text: fmt.Sprintf("%s: clock within %s", host, maxClockSkew)}
 }
 
 // versionFinding checks the output of `sendaway version` on the host.
@@ -128,11 +133,11 @@ func versionFinding(host, out string) finding {
 	}
 	switch {
 	case version == "":
-		return finding{false, fmt.Sprintf("%s: sendaway not found or unreadable (%q); install it where a non-login ssh finds it", host, truncate(strings.TrimSpace(out), 60))}
+		return finding{text: fmt.Sprintf("%s: sendaway not found or unreadable (%q); install it where a non-login ssh finds it", host, truncate(strings.TrimSpace(out), 60))}
 	case protocol != proto.Protocol:
-		return finding{false, fmt.Sprintf("%s: sendaway %s speaks protocol %d, this one speaks %d", host, version, protocol, proto.Protocol)}
+		return finding{text: fmt.Sprintf("%s: sendaway %s speaks protocol %d, this one speaks %d", host, version, protocol, proto.Protocol)}
 	}
-	return finding{true, fmt.Sprintf("%s: sendaway %s (protocol %d)", host, version, protocol)}
+	return finding{ok: true, text: fmt.Sprintf("%s: sendaway %s (protocol %d)", host, version, protocol)}
 }
 
 func truncate(s string, n int) string {
@@ -157,7 +162,7 @@ func doctorCmd(out io.Writer) int {
 	section("shims (" + shimDir + ")")
 	names := shimNames(shimDir)
 	if len(names) == 0 {
-		add(finding{false, "no shims installed; run 'sendaway install-shims'"})
+		add(finding{text: "no shims installed; run 'sendaway install-shims'"})
 	}
 	for _, n := range names {
 		add(pathHead(n, shimDir, os.Getenv("PATH")))
@@ -185,7 +190,7 @@ func doctorCmd(out io.Writer) int {
 	hosts := hostsOf(user)
 	if len(hosts) == 0 {
 		section("hosts")
-		add(finding{false, "no host configured in " + userPath})
+		add(finding{text: "no host configured in " + userPath})
 	}
 	for _, h := range hosts {
 		section("host " + h)
@@ -254,9 +259,9 @@ func checkHost(c *sshx.Client, shims []string) []finding {
 		if hint := connectHint(c.Host, errOut); hint != "" {
 			text += " -- " + hint
 		}
-		return []finding{{false, text}}
+		return []finding{{text: text}}
 	}
-	fs := []finding{{true, c.Host + ": reachable"}, silentFinding(c.Host, out)}
+	fs := []finding{{ok: true, text: c.Host + ": reachable"}, silentFinding(c.Host, out)}
 
 	out, _, err = ssh(c, "sendaway version")
 	fs = append(fs, versionFinding(c.Host, resultOr(out, err)))
@@ -265,22 +270,32 @@ func checkHost(c *sshx.Client, shims []string) []finding {
 	if secs, perr := strconv.ParseInt(strings.TrimSpace(out), 10, 64); err == nil && perr == nil {
 		fs = append(fs, skewFinding(c.Host, secs, time.Now()))
 	} else {
-		fs = append(fs, finding{false, c.Host + ": cannot read the clock"})
+		fs = append(fs, finding{text: c.Host + ": cannot read the clock"})
 	}
 
 	if len(shims) > 0 {
 		script := `for c in ` + strings.Join(shims, " ") + `; do command -v "$c" || echo "$c: not found"; done`
 		out, _, err = ssh(c, `"$SHELL" -lc `+sshx.ShellQuote(script))
 		if err != nil {
-			fs = append(fs, finding{false, c.Host + ": login shell probe failed: " + err.Error()})
+			fs = append(fs, finding{text: c.Host + ": login shell probe failed: " + err.Error()})
 		} else {
 			for l := range strings.Lines(out) {
 				l = strings.TrimSpace(l)
-				fs = append(fs, finding{!strings.HasSuffix(l, ": not found"), c.Host + ": " + l})
+				fs = append(fs, toolFinding(c.Host, l))
 			}
 		}
 	}
 	return fs
+}
+
+// toolFinding turns one line of the login-shell probe into a finding. A shim
+// whose tool the host lacks is a warning: a host serves only the projects
+// routed to it, and those may never send that command.
+func toolFinding(host, line string) finding {
+	if name, ok := strings.CutSuffix(line, ": not found"); ok {
+		return finding{ok: true, warn: true, text: fmt.Sprintf("%s: %s: not found; a run that sends %s here fails", host, name, name)}
+	}
+	return finding{ok: true, text: host + ": " + line}
 }
 
 func resultOr(out string, err error) string {
