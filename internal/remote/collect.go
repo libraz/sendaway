@@ -2,7 +2,6 @@ package remote
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 const (
 	reasonSymlink = "symlink"
 	reasonLimit   = "limit"
+	reasonMissing = "missing"
 )
 
 // artifactsLimit caps the total size of collected artifacts.
@@ -28,7 +28,7 @@ const (
 
 // collect walks the root-relative paths without following symlinks and
 // returns the files to bring back and the ones refused. In pull mode a
-// missing path is an error and any refusal empties the collection.
+// missing path is refused and any refusal empties the collection.
 func collect(root string, paths []string, mode magic.Mode) ([]string, []proto.Rejected, error) {
 	c := collector{root: root, mode: mode, seen: make(map[string]bool)}
 	for _, p := range paths {
@@ -41,7 +41,7 @@ func collect(root string, paths []string, mode magic.Mode) ([]string, []proto.Re
 		switch {
 		case errors.Is(err, fs.ErrNotExist):
 			if mode == modePull {
-				return nil, nil, fmt.Errorf("pull path does not exist: %s", p)
+				c.reject(p, reasonMissing)
 			}
 			continue
 		case err != nil:

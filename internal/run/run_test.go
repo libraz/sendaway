@@ -440,6 +440,28 @@ func TestRecord(t *testing.T) {
 	}
 }
 
+func TestPullRefused(t *testing.T) {
+	f := newFixture(t)
+	errf := tempFile(t, "stderr")
+	o := f.runRemote(errf, errf, &config.Project{Pull: []string{"dist"}}, "sh", "-c", "mkdir -p dist && ln -s ../a.txt dist/link")
+	got := readAll(t, errf)
+	if o != (Outcome{Code: ExitFailure}) {
+		t.Fatalf("outcome = %+v\n%s", o, got)
+	}
+	meta, err := runlog.Open(f.state, nil).Latest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reason := "pull refused: dist/link (symlink) — the command exited 0"
+	log := filepath.Join(f.state, "runs", meta.ID, "output.log")
+	if want := linePrefix + reason + " · run " + meta.ID + " · log " + log; lastLine(got) != want {
+		t.Fatalf("last line = %q\nwant %q", lastLine(got), want)
+	}
+	if meta.Code != ExitFailure || meta.Error != reason {
+		t.Fatalf("meta code %d, error %q", meta.Code, meta.Error)
+	}
+}
+
 func TestExcludeComposition(t *testing.T) {
 	f := newFixture(t)
 	f.write(t, ".gitignore", "build/\n*.log\nout*/\n")
@@ -449,6 +471,7 @@ func TestExcludeComposition(t *testing.T) {
 	f.write(t, ".env", "TOKEN=x\n")
 	f.write(t, "config/.npmrc", "//registry.example/:_authToken=x\n")
 	f.write(t, "fixtures/private/p.txt", "p")
+	f.write(t, "src/secrets/k.txt", "k")
 	f.write(t, "src/b.txt", "b")
 	f.git(t, "add", ".gitignore", "config/.npmrc")
 
@@ -463,7 +486,8 @@ func TestExcludeComposition(t *testing.T) {
 		t.Fatalf("pushes = %d, want 1", len(f.tr.excludes))
 	}
 	gotEx := slices.Sorted(slices.Values(f.tr.excludes[0]))
-	wantEx := []string{"/.env", "/build/", "/config/.npmrc", "/debug.log", "/fixtures/private", "/fixtures/private/p.txt", "/out[1]/"}
+	// A withheld directory is excluded whole so it is not created empty on the host.
+	wantEx := []string{"/.env", "/build/", "/config/.npmrc", "/debug.log", "/fixtures/private", "/out[1]/", "/src/secrets"}
 	if !slices.Equal(gotEx, wantEx) {
 		t.Fatalf("excludes = %q\nwant %q", gotEx, wantEx)
 	}
@@ -471,7 +495,7 @@ func TestExcludeComposition(t *testing.T) {
 	if wantSent := []string{".gitignore", "a.txt", "src/b.txt"}; !ok || !slices.Equal(sent, wantSent) {
 		t.Fatalf("request manifest = %q (stored %v), want %q", sent, ok, wantSent)
 	}
-	notSent := "[sendaway] not sent (secret-like): .env, config/.npmrc, fixtures/private/p.txt"
+	notSent := "[sendaway] not sent (secret-like): .env, config/.npmrc, fixtures/private/p.txt, src/secrets/k.txt"
 	if own, _ := split(got); !slices.Contains(own, notSent) {
 		t.Fatalf("missing %q in:\n%s", notSent, got)
 	}

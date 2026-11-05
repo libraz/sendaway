@@ -629,7 +629,8 @@ func TestCollect(t *testing.T) {
 		t.Fatalf("artifacts: %+v", e)
 	}
 
-	if e := run("true", []string{"nope"}, nil); !strings.Contains(e.Error, "does not exist") {
+	missing := []proto.Rejected{{Path: "nope", Reason: "missing"}}
+	if e := run("true", []string{"nope"}, nil); e.Error != "" || len(e.Collect) != 0 || !slices.Equal(e.Rejected, missing) {
 		t.Fatalf("missing pull: %+v", e)
 	}
 }

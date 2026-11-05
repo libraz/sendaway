@@ -54,6 +54,28 @@ func Check(rel string, excludes []string, read func(rel string) ([]byte, error))
 	return ""
 }
 
+// Scope returns the shallowest prefix of a withheld rel that is withheld as a
+// whole: the path through the first element matching a deny name, else the
+// exclude entry rel lies below, else rel itself. Excluding the scope rather
+// than rel keeps a withheld directory from being created empty on the host.
+func Scope(rel string, excludes []string) string {
+	end := 0
+	for element := range strings.SplitSeq(rel, "/") {
+		end += len(element)
+		if matchedName(strings.ToLower(element)) != "" {
+			return rel[:end]
+		}
+		end++
+	}
+	for _, entry := range excludes {
+		entry = path.Clean(entry)
+		if entry != "." && (rel == entry || strings.HasPrefix(rel, entry+"/")) {
+			return entry
+		}
+	}
+	return rel
+}
+
 // RC reports whether the content of an .npmrc or .yarnrc.yml has a credential key.
 func RC(content []byte) bool {
 	lower := strings.ToLower(string(content))

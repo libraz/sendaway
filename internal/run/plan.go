@@ -55,15 +55,17 @@ func buildPlan(root string, exclude []string) (*plan, error) {
 
 	p := &plan{fingerprint: m.Fingerprint(), ignoreCase: gitBool(root, "core.ignorecase")}
 	sent := make(map[string]bool, len(m.Entries))
+	var withheld []string
 	for _, rel := range m.Paths() {
 		if secret.Check(rel, exclude, read) != "" {
 			p.notSent = append(p.notSent, rel)
+			withheld = append(withheld, secret.Scope(rel, exclude))
 			continue
 		}
 		p.send = append(p.send, rel)
 		sent[rel] = true
 	}
-	p.excludes = composeExcludes(ignored, p.notSent, exclude)
+	p.excludes = composeExcludes(ignored, withheld, exclude)
 
 	if total := m.TotalSize(); total > manifest.LargeTreeBytes {
 		var big []string

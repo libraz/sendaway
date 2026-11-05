@@ -336,8 +336,10 @@ func (x *execution) complete(ex *proto.Exit) Outcome {
 		x.con.line(modifiedLine(ex.Modified))
 	}
 	if collectErr != "" {
-		x.con.line(collectErr)
-		return x.record(ExitFailure, 0, collectErr, ex.Modified)
+		// Only a successful command collects pull: paths, so its own exit is 0.
+		reason := collectErr + " — the command exited 0"
+		x.con.line(fmt.Sprintf("%s · run %s · log %s", reason, x.rec.ID, x.rec.Log.Name()))
+		return x.record(ExitFailure, 0, reason, ex.Modified)
 	}
 	x.trailer(ex.Code, ex.Signal)
 	return x.record(ex.Code, ex.Signal, "", ex.Modified)

@@ -64,6 +64,29 @@ func TestSecretPath(t *testing.T) {
 	}
 }
 
+func TestScope(t *testing.T) {
+	cases := []struct {
+		rel      string
+		excludes []string
+		want     string
+	}{
+		{".env", nil, ".env"},
+		{"secrets/x.txt", nil, "secrets"},
+		{"app/Secrets/deep/x", nil, "app/Secrets"},
+		{"x/.gnupg/a", nil, "x/.gnupg"},
+		{"keys/server.pem", nil, "keys/server.pem"},
+		{"fixtures/private/a.txt", []string{"fixtures/private/"}, "fixtures/private"},
+		{"fixtures/private/secrets/a", []string{"fixtures/private"}, "fixtures/private/secrets"},
+		{"src/a.go", []string{"."}, "src/a.go"},
+		{"config/.npmrc", nil, "config/.npmrc"},
+	}
+	for _, c := range cases {
+		if got := Scope(c.rel, c.excludes); got != c.want {
+			t.Errorf("Scope(%q, %q) = %q, want %q", c.rel, c.excludes, got, c.want)
+		}
+	}
+}
+
 func TestSecretRC(t *testing.T) {
 	cases := []struct {
 		name    string
