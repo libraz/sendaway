@@ -371,6 +371,8 @@ func (ss *session) handle(req *proto.Request) (proto.Exit, *lock.Lock) {
 	if err != nil {
 		return errExit(fmt.Errorf("state dir: %w", err)), nil
 	}
+	// Measured before the lock: a wait for another run is not clock skew.
+	skew := time.Since(time.UnixMilli(req.SentUnixMs)).Round(100 * time.Millisecond)
 	holder, _ := json.Marshal(lockHolder{Run: req.Run, StartedUnixMs: time.Now().UnixMilli(), PID: os.Getpid()})
 	l, err := lock.Acquire(ss.ctx, filepath.Join(dir, "lock"), holder, ss.lockWait)
 	if err != nil {
@@ -387,7 +389,6 @@ func (ss *session) handle(req *proto.Request) (proto.Exit, *lock.Lock) {
 		return proto.Exit{}, l
 	}
 
-	skew := time.Since(time.UnixMilli(req.SentUnixMs)).Round(100 * time.Millisecond)
 	if skew.Abs() > skewLimit {
 		return errExit(fmt.Errorf("remote clock differs from local by %s (limit %s); sync the clocks", skew, skewLimit)), l
 	}

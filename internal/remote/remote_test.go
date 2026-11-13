@@ -701,6 +701,25 @@ func TestFetchOp(t *testing.T) {
 		}
 	}
 
+	// Time spent waiting for the remote lock is not reported as clock skew.
+	held, err = lock.Acquire(context.Background(), filepath.Join(dir, "lock"), []byte(holder), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := f.start(t)
+	c.startPings()
+	c.send(proto.Request{
+		Protocol: proto.Protocol, Op: proto.OpFetch, Run: "r-fetch", Root: f.root,
+		Pull: []string{"dist/text.txt"}, SentUnixMs: time.Now().UnixMilli(),
+	})
+	waited := c.until(proto.TypeNote)
+	time.Sleep(skewNote + 500*time.Millisecond)
+	_ = held.Release()
+	e, rest := c.exit()
+	if n := notes(append(waited, rest...)); e.Error != "" || len(n) != 1 {
+		t.Fatalf("lock wait counted as skew: exit %+v, notes %q", e, n)
+	}
+
 	e, _ = fetch([]string{"dist"}, 0, nil)
 	if e.Error != "" || len(e.Collect) != 0 || !slices.Equal(e.Rejected, []proto.Rejected{{Path: "dist/bin", Reason: "elf"}}) {
 		t.Fatalf("refused fetch: %+v", e)
