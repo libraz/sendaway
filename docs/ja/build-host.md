@@ -2,17 +2,17 @@
 
 ビルドホストは、ssh 経由で到達する Linux マシンです。`sendaway remote-exec` を必要なときに起動し、プロジェクトのコマンドを実行します。デーモンは不要です。
 
-![プロジェクトはホストでも同じ絶対パスに置かれ、コマンドはログインシェルの下で起動されます。環境変数はホストの HOME・USER・LOGNAME・SHELL・PATH、除外を経た転送変数、SENDAWAY_PASSTHROUGH=1 からゼロから組み立てられ、転送した値はプロファイルの設定より優先されます。](../images/host-launch-ja.svg)
+![プロジェクトはホストでも同じ絶対パス（スロットのコピーは `<root>.slot-<n>`）に置かれ、コマンドはログインシェルの下で起動されます。環境変数はホストの HOME・USER・LOGNAME・SHELL・PATH、除外を経た転送変数、SENDAWAY_PASSTHROUGH=1 からゼロから組み立てられ、転送した値はプロファイルの設定より優先されます。](../images/host-launch-ja.svg)
 
 ## 要件
 
 - 鍵認証のみ。`sshd_config` で `AllowAgentForwarding no`、`AllowTcpForwarding no`、`ClientAliveInterval 15` を設定します。
 - 時刻同期（chrony など）。時計の差が 2 秒を超えると実行中に通知され、60 秒を超えると実行が失敗します。
 - sendaway を実行するユーザーに、git の資格情報、他ホストへの鍵、sudo 権限を持たせません。
-- ワークステーションと同じ絶対パスの親ディレクトリ（例：`/Users/<name>`）。そのユーザーが作成し、所有します。`/Users/alice/Projects/big-repo` にあるプロジェクトは、ホスト上の `/Users/alice/Projects/big-repo` へ同期されます。
+- ワークステーションと同じ絶対パスの親ディレクトリ（例：`/Users/<name>`）。そのユーザーが作成し、所有します。`/Users/alice/Projects/big-repo` にあるプロジェクトは、ホスト上の `/Users/alice/Projects/big-repo` へ同期されます。[スロット](configuration.md#slots)のコピーは `/Users/alice/Projects/big-repo.slot-<n>` へ同期されます。
 - rsync 3.1 以降。`sendaway` は `/usr/local/bin` に置きます。非ログインの ssh はそこで見つけます。
 - 標準出力に何も出力しないログインプロファイルと rc ファイル。
-- プロジェクトのパスがあるファイルシステムに、`min_free`（既定 20 GiB）以上の空き容量。下回っていると、実行の前に、そのファイルシステム上の他のプロジェクトのコピーを、最後に使った時刻が古いものから削除します（[設定](configuration.md#min_free)を参照）。
+- プロジェクトのパスがあるファイルシステムに、`min_free`（既定 20 GiB）以上の空き容量。下回っていると、実行の前に、そのファイルシステム上の他のプロジェクトのコピーと、このプロジェクト自身の使われていないスロットを、最後に使った時刻が古いものから削除します（[設定](configuration.md#min_free)を参照）。
 - ログインプロファイルで PATH に通したプロジェクトのツールチェーン。
 
 ホスト側の sendaway は、ローカルと同じプロトコルである必要があります。どちら側でも `sendaway version` で両方を確認できます。
@@ -28,7 +28,7 @@
 7. **ログインプロファイルでツールチェーンを PATH に通します**。コマンドは `$SHELL -lc` の下で動くため、コマンドの開始前にログインシェルがプロファイル（bash では `~/.bash_profile` か `~/.profile`）を読みます。コンパイラ、`mise`、`cargo`、`go`、`node`、パッケージマネージャは、そこで見つかる必要があります。対話用の rc ファイルだけで設定した PATH は見えません。
 8. **rc ファイルとプロファイルを静かに保ちます**。非ログインの rc ファイルが出力すると、stdout 上のプロトコルのフレームが壊れます。ログインプロファイルの出力は、コマンド自身の stdout に混ざります。バナー、`echo`、`motd` のような出力は、対話端末かどうかの判定で囲みます。
 9. **ssh の Host エントリを追加します**。ワークステーション側にエントリを書き、`ssh build01` を一度実行してホスト鍵を登録し、ホストをユーザー設定に加えます（[はじめに](getting-started.md)を参照）。
-10. **重いプロジェクトは別に振り分けます**。ホストはプロジェクトごとに同時に 1 回しか実行せず、別のプロジェクトの実行は同じ CPU を取り合います。ビルドに長くかかるプロジェクトには、`routes:` のエントリで専用のホストを割り当てます（[設定](configuration.md#routes)を参照）。
+10. **重いプロジェクトは別に振り分けます**。ホストはプロジェクトのコピーごとに同時に 1 回しか実行せず、別のプロジェクトの実行は同じ CPU を取り合います。ビルドに長くかかるプロジェクトには、`routes:` のエントリで専用のホストを割り当てます（[設定](configuration.md#routes)を参照）。
 11. **`sendaway doctor` を実行します**。ワークステーション側で実行します。
 
 ## doctor がホストで確認する項目
@@ -43,7 +43,7 @@
 | `date +%s` がローカルの時計と 2 秒以内に収まる | `<host>: clock within 2s` |
 | インストール済みの各 shim 名がログインシェルで解決できる（`$SHELL -lc 'command -v <name>'`） | `<host>: <path>` |
 
-プロジェクトの中で実行した場合、doctor はさらに、プロジェクトのルートの存在する最も近い親ディレクトリについてホスト上で `df -Pk` を実行し、`<host>: <free> free at <path> (min_free <min>)` を表示します。空き容量が `min_free` を下回ると警告になります。
+プロジェクトの中で実行した場合、doctor はさらに、選択されたコピーのルート（プロジェクトのルート、または `SENDAWAY_SLOT` で選ばれたスロットのコピー）の存在する最も近い親ディレクトリについてホスト上で `df -Pk` を実行し、`<host>: <free> free at <path> (min_free <min>)` を表示します。空き容量が `min_free` を下回ると警告になります。
 
 接続に失敗すると、そのホストの確認を中止し、ssh のエラーを表示します。`Host key verification failed` のエラーには、`run 'ssh <host>' by hand once to add the host to known_hosts` というヒントが付きます。
 

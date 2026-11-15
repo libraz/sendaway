@@ -112,15 +112,15 @@ exclude: [fixtures/private, docs/large.pdf]
 
 ### `slots`
 
-`slots` は、1 つのプロジェクトで複数の実行を同時に進められるようにします。既定では無効で、プロジェクトごとに 1 回だけ実行でき、ほかの実行はロックを待ちます。
+`slots` は、1 つのプロジェクトで複数の実行を同時に進められるようにします。既定（`slots: 0`）では無効で、プロジェクトごとに 1 回だけ実行でき、ほかの実行はロックを待ちます。
 
 ```yaml
 slots: 2
 ```
 
-- `slots: N` は、プロジェクトの主コピーに加えて、スロット 1 から N（最大 8）を有効にします。スロットは、ホスト上の `<root>.slot-<n>` に置かれる、プロジェクトのもう 1 つのコピーです。ロック、ツリー、ビルド出力を、それぞれ独自に持ちます。
-- 実行ごとに、環境変数 `SENDAWAY_SLOT` でスロットを選びます。例: `SENDAWAY_SLOT=1 make test`。未設定、空、`0` は主コピーです。この変数は、shim、`run`、`fetch`、`shell`、`forget` のすべてに効きます。`SENDAWAY_SLOT=1 sendaway fetch <path>` は、スロットのコピーから読みます。
-- プロジェクトが有効にしていないスロットを選ぶと、`SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` で失敗し、終了コードは 125 です。
+- `slots: N` は、プロジェクトの主コピーに加えて、スロット 1 から N（N は 0 から 8）を有効にします。スロットは、ホスト上の `<root>.slot-<n>` に置かれる、プロジェクトのもう 1 つのコピーです。ロック、ツリー、ビルド出力を、それぞれ独自に持ちます。
+- 実行ごとに、環境変数 `SENDAWAY_SLOT` でスロットを選びます。例: `SENDAWAY_SLOT=1 make test`。未設定、空、`0` は主コピーです。この変数を読むのは、ホストのコピーを使うコマンド（リモートで実行される shim、`run`、`fetch`、`shell`、`forget`）だけで、`SENDAWAY_SLOT=1 sendaway fetch <path>` は、スロットのコピーから読みます。`doctor` は、選ばれたコピーのディスクを確認します。ローカルにとどまるコマンドと `which` は、この変数を無視します。
+- プロジェクトが有効にしていないスロットを選ぶと、それらのコマンドは `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` で失敗し、終了コードは 125 です。数値でない値は `SENDAWAY_SLOT="<value>" is not a slot number` で失敗します。
 - 同じスロットの実行どうしは、これまでどおり互いを待ちます。開始行と終了行には、スロットが表示されます。例: `build01 slot 1 linux-amd64 · sync 0.42s`。
 - スロットでの最初の実行は、ツリー全体を送り、最初からビルドします。以後の実行は差分です。各スロットは、主コピーと同じだけディスクを使います。使われていないスロットは、`min_free` が足りないとき、ほかのコピーと同じように削除されます。
 
@@ -162,14 +162,14 @@ min_free: 20GiB
 
 コマンドの実行前にビルドホストが空けておく容量です。整数に 2 進単位を付けて書きます。単位は `B`、`KiB`、`MiB`、`GiB`、`TiB` で、たとえば `20GiB` や `512MiB` です。既定値は `20GiB` です。単独の `0` はチェックを無効にします。それ以外の数値には単位が必要です。負の値、小数、ほかの単位はエラーになります（例：`min_free "20GB" has an unknown unit "GB" (use B, KiB, MiB, GiB or TiB)`）。
 
-ホストはプロジェクトのルートがあるファイルシステムの空き容量を測ります。`min_free` を下回っていると、実行の前に他のプロジェクトのコピーを削除します（[仕組み](how-it-works.md#4-セッション)を参照）。この設定はすべてのホストに適用されます。
+ホストはプロジェクトのルートがあるファイルシステムの空き容量を測ります。`min_free` を下回っていると、実行の前に他のプロジェクトのコピーと、このプロジェクト自身の使われていないスロットを削除します（[仕組み](how-it-works.md#4-セッション)を参照）。この設定はすべてのホストに適用されます。
 
 ## 状態の保存場所
 
 | 場所 | 内容 |
 |---|---|
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/` | 実行記録 |
-| `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | プロジェクトごとのローカルロック |
+| `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | プロジェクトのコピーごとのローカルロック |
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/cm/` | ssh の control ソケット |
 | `${XDG_DATA_HOME:-~/.local/share}/sendaway/bin/` | shim |
-| ホスト上の `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` | プロジェクトごとのリモート状態。プロジェクトを示し、最後に使った時刻を記録する `root` ファイルを含む |
+| ホスト上の `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` | プロジェクトのコピーごとのリモート状態（コピーごとに 1 ディレクトリ）。プロジェクトを示し、最後に使った時刻を記録する `root` ファイルを含む |

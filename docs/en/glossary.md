@@ -22,7 +22,7 @@ Terms used across these pages, in alphabetical order. Each entry links to the pa
 
 **manifest** — The sorted list of files git tracks or does not ignore, minus the secret set. It is what the push sends, and the host keeps it as its record of the last push. [How it works](how-it-works.md#3-file-sets)
 
-**min_free** — The free space the host must keep on the filesystem holding the project before a run starts. Below it, the host removes other projects' copies, least recently used first. [Configuration](configuration.md#min_free)
+**min_free** — The free space the host must keep on the filesystem holding the project before a run starts. Below it, the host removes other copies (other projects and this project's idle slots), least recently used first. [Configuration](configuration.md#min_free)
 
 **passthrough** — `SENDAWAY_PASSTHROUGH`. When it is set, a shim execs the real binary without consulting the rules. sendaway sets it when a command runs locally because of a `local:` match, no match, `sendaway local` or the fallback, and for the remote command, so the commands those start stay where they are. [How it works](how-it-works.md#1-decision)
 

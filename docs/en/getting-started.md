@@ -8,7 +8,7 @@ This page takes a Mac (or Linux) workstation and one Linux build host from nothi
 go install github.com/libraz/sendaway/cmd/sendaway@latest
 ```
 
-The Go toolchain version required is the `go` directive in the repository's `go.mod`. Git and OpenSSH must be installed. On macOS, put a Homebrew rsync 3.x ahead of the system one on PATH: the rsync that ships with macOS (openrsync) speaks protocol 29 and is rejected, because sendaway needs protocol 31 or newer.
+The Go toolchain version required is the `go` directive in the repository's `go.mod`. Git and OpenSSH must be installed. On macOS, put a Homebrew rsync 3.x ahead of the system one on PATH: the rsync that ships with macOS (openrsync) speaks protocol 29 and is reported by `sendaway doctor` as a failure, because sendaway needs protocol 31 or newer.
 
 Check the install:
 

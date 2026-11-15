@@ -6,7 +6,7 @@
 - 対話型コマンドと tty コマンドには対応していません。リモートのコマンドには端末がなく、`/dev/null` を読みます。
 - git サブモジュール、ネストしたリポジトリ、git worktree、NFC で保存されていないファイル名には対応しておらず、検出された時点で終了コード 125 で失敗します。
 - 自分で `setsid` を呼んだプロセスは、コマンドのプロセスグループを離れるため、中断されても停止されません。
-- プロジェクトごとに同時に実行できるのは 1 回だけです。ほかの実行はロックを待ちます。プロジェクトが [`slots`](configuration.md#slots) を有効にしている場合は、スロットの数だけ並行して実行できます。
+- プロジェクトが [`slots`](configuration.md#slots) を有効にしている場合を除き、プロジェクトごとに同時に実行できるのは 1 回だけです。ほかの実行はロックを待ちます。
 - sendaway はプライベートなパッケージレジストリへの認証をせず、`.npmrc` や `.yarnrc.yml` のトークンも送りません。
 - 同期されるツリーは、実行開始時点の作業ツリーです。コマンドがホスト上に作成したファイルはそこに残りますが（無視されたビルドディレクトリは実行をまたいで残ります）、`pull:` か `artifacts:` に列挙しない限り戻ってきません。
 
@@ -28,7 +28,7 @@
 
 ## ロックの待機
 
-`waiting for lock (held by: ...)` は、このワークステーション上の同じプロジェクトの別の実行がロックを保持していることを意味します。`waiting for remote lock (held by run <id>, ...)` は、ホストのロックが保持されていることを意味し、典型的には別のワークステーションからの実行か、`fetch` や `forget` です。待機は、保持者が終了するか死ぬと終わります。プロセスが終了すると、カーネルがロックを解放します。Ctrl-C で待機を中止できます。`sendaway runs` で記録を確認できます。
+`waiting for lock (held by: ...)` は、このワークステーション上の、プロジェクトの同じコピー（主コピーまたは同じスロット）で別の実行がロックを保持していることを意味します。`waiting for remote lock (held by run <id>, ...)` は、そのコピーに対するホストのロックが保持されていることを意味し、典型的には別のワークステーションからの実行です。`fetch` や `forget` が保持している場合は、実行 ID を持たないので `waiting for remote lock (held by unknown)` と表示されます。待機は、保持者が終了するか死ぬと終わります。プロセスが終了すると、カーネルがロックを解放します。Ctrl-C で待機を中止できます。`sendaway runs` で記録を確認できます。
 
 ## 時計のずれ
 
@@ -62,7 +62,7 @@
 
 ## rsync が拒否される：openrsync
 
-`rsync protocol too old: rsync <version> speaks protocol 29, need 31 or newer (install rsync 3.x, e.g. Homebrew)` は、macOS 標準の rsync です。Homebrew で rsync 3.x をインストールし、PATH で `/usr/bin` より前に置いてください。`sendaway doctor` は、使用中のバージョンを報告します。
+`rsync protocol too old: rsync <version> speaks protocol 29, need 31 or newer (install rsync 3.x, e.g. Homebrew)` は、macOS 標準の rsync で、`sendaway doctor` が（`local tools` の項で）失敗にします。Homebrew で rsync 3.x をインストールし、PATH で `/usr/bin` より前に置いてください。以後、doctor は使用中のバージョンを報告します。
 
 ## ControlPath が長すぎる
 

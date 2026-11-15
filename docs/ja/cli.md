@@ -40,7 +40,7 @@ sendaway init
 | `CMakeLists.txt` | remote `[cmake]`、`[ctest]` |
 | `go.mod` | remote `[go, test]`、`[go, build]`、`[go, vet]` |
 | `package.json` と `yarn.lock` | remote `[yarn, test]`、`[yarn, build]`、local `install`、`add`、`remove`、`dev`、`lint`、`format`、prepare は `yarn.lock`、`package.json` に対する `yarn install --immutable` |
-| `package.json` と `pnpm-lock.yaml` | `pnpm` で同様。prepare は `pnpm install --frozen-lockfile` |
+| `package.json` と `pnpm-lock.yaml` | remote `[pnpm, test]`、`[pnpm, build]`、local `install`、`add`、`remove`、`dev`、prepare は `pnpm-lock.yaml`、`package.json` に対する `pnpm install --frozen-lockfile` |
 | `package.json` と `bun.lock` | remote `[bun, test]`、`[bun, run, build]`、local `install`、`add`、`remove`、`[bun, run, dev]`、prepare は `bun install --frozen-lockfile` |
 | `Cargo.toml` | remote `[cargo, test]`、`[cargo, build]`、local `[cargo, fmt]`、`[cargo, add]` |
 | `mise.toml` | `mise.toml` に対する prepare `mise trust --yes` と `mise install` |
@@ -76,6 +76,7 @@ sendaway doctor
 - `shims (<dir>)`：インストール済みの各 shim が PATH の先頭にあるかどうか。メッセージは `<name>: the shim comes first on PATH`、`<name>: <path> comes before the shim; put <dir> first in PATH`、`<name>: not found on PATH; add <dir> to PATH` です。shim が 1 つもなければ `no shims installed; run 'sendaway install-shims'` と表示されます。
 - `local tools`：ローカルの rsync（`rsync <version> (protocol <n>)`。プロトコルが 31 未満なら失敗）と、`cm` control ディレクトリ（`<dir> is private (0700)`、`<dir> does not exist yet`、モードが 0700 でなければ失敗）。
 - `host <name>`：ユーザー設定にある重複しない各ホストについて、[ビルドホスト](build-host.md#doctor-がホストで確認する項目)に挙げた確認項目。ホストが設定されていなければ `no host configured in <path>` と表示されます。
+- `project disk on <host>`：ホストが決まるプロジェクトの中で実行した場合にだけ出ます。選択されたコピーがホスト上にある（またはこれから作られる）場所の空き容量を、`<host>: <size> free at <path> (min_free <size>)`、`min_free` を下回れば `warn`、読めなければ `cannot read free space` で示します。コピーは `SENDAWAY_SLOT` で選ばれたものです。値が不正なら、ここで `FAIL` の行になります。
 
 ssh のプローブは、それぞれ 30 秒でタイムアウトします。`FAIL` の行がなければ終了コードは 0、1 行でもあれば 125 です。`warn` の行は終了コードに影響しません。
 
@@ -121,9 +122,9 @@ sendaway local <command> [arguments...]
 sendaway fetch <path...>
 ```
 
-ホスト上のプロジェクトのコピーから、ルート相対のパスを、最新の記録済み実行の `fetched/` ディレクトリ（`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`）へ、相対的な配置を保ったままコピーします。ローカルのツリーは変更されません。最新の実行とは、このマシンで最も新しい記録であり、このプロジェクトのものとは限りません。
+ホスト上のプロジェクトのコピー（`SENDAWAY_SLOT` で選ばれたもの。[スロット](configuration.md#slots)を参照）から、ルート相対のパスを、最新の記録済み実行の `fetched/` ディレクトリ（`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`）へ、相対的な配置を保ったままコピーします。ローカルのツリーは変更されません。最新の実行とは、このマシンで最も新しい記録であり、このプロジェクトのものとは限りません。
 
-`pull:` と同じ検査が適用されます。ディレクトリは再帰的にコピーされ、存在しないパス、シンボリックリンク、ネイティブバイナリ、アーカイブは拒否されます（`pull refused: <path> (<reason>)`）。成功時は何も表示しません。終了コードは 0 です。失敗した場合は 125 で、実行が 1 つも記録されていなければ `no runs recorded` になります。fetch はプロジェクトのホストのロックを待つので、実行中のコマンドの後ろに並びます。
+`pull:` と同じ検査が適用されます。ディレクトリは再帰的にコピーされ、存在しないパス、シンボリックリンク、ネイティブバイナリ、アーカイブは拒否されます（`pull refused: <path> (<reason>)`）。成功時は何も表示しません。終了コードは 0 です。失敗した場合は 125 で、実行が 1 つも記録されていなければ `no runs recorded` になります。fetch はそのコピーに対するホストのロックを待つので、実行中のコマンドの後ろに並びます。
 
 ## runs
 
@@ -168,7 +169,7 @@ log:      /Users/you/.local/state/sendaway/runs/r-20250101-120000-ab12/output.lo
 sendaway shell
 ```
 
-プロジェクトのホストへの対話的な ssh セッションでプロセスを置き換え、プロジェクトのディレクトリ（`cd <root> && exec "$SHELL" -l`）で tty つきで開きます。接続のオプションは実行時と共通ですが、`BatchMode` と `-T` は含まれないので、パスワードのプロンプトも使えます。同期は行われず、ホストには前回の実行が残したままのツリーが見えます。終了ステータスは ssh のものです。失敗した実行のディレクトリをホスト上で調べるために使います。
+プロジェクトのホストへの対話的な ssh セッションでプロセスを置き換え、`SENDAWAY_SLOT` で選ばれたコピーのディレクトリ（`cd <root> && exec "$SHELL" -l`）で tty つきで開きます。接続のオプションは実行時と共通ですが、`BatchMode` と `-T` は含まれないので、パスワードのプロンプトも使えます。同期は行われず、ホストには前回の実行が残したままのツリーが見えます。終了ステータスは ssh のものです。失敗した実行のディレクトリをホスト上で調べるために使います。
 
 ## forget
 
@@ -176,7 +177,7 @@ sendaway shell
 sendaway forget
 ```
 
-ホストのプロジェクトのディレクトリと、それに対する sendaway のリモート状態（保存されたマニフェストと prepare のハッシュ）を、ホストのプロジェクトロックを取得してから削除します。成功すると `[sendaway] <host>: removed <root> and its state` と表示します。次の実行ではツリー全体が再び送られ、すべての `prepare:` ルールが再実行されます。ローカルの実行記録には触れません。終了コードは 0 です。失敗した場合は 125 です。
+ホストのプロジェクトのディレクトリと、それに対する sendaway のリモート状態（保存されたマニフェストと prepare のハッシュ）を、そのコピーのホストロックを取得してから削除します。削除されるのは `SENDAWAY_SLOT` で選ばれたコピーだけで、ほかのコピーは残ります。成功すると `[sendaway] <host>: removed <copy root> and its state` と表示します。次の実行ではツリー全体が再び送られ、すべての `prepare:` ルールが再実行されます。ローカルの実行記録には触れません。終了コードは 0 です。失敗した場合は 125 です。
 
 ## version
 

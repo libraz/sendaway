@@ -48,13 +48,13 @@ When stdout and stderr go to the same file, sendaway keeps the command's output 
 
 ## Background tasks and the lock
 
-Only one run per project executes at a time. A second command waits and prints
+Only one run per copy of a project executes at a time (the main copy and each [slot](configuration.md#slots) are separate copies). A second command in the same copy waits and prints
 
 ```
 [sendaway] waiting for lock (held by: make test, 12s, run r-20250101-120000-ab12)
 ```
 
-until the first finishes. An agent that starts a long build in the background and then runs another command in the same project sees that wait. The wait is not a hang; use `sendaway runs` to see what is recorded, and stop the first command to release the lock. The lock is released when the holding process ends for any reason.
+until the first finishes. An agent that starts a long build in the background and then runs another command in the same copy of the project sees that wait. The wait is not a hang; use `sendaway runs` to see what is recorded, and stop the first command to release the lock. The lock is released when the holding process ends for any reason.
 
 Stopping an agent command with Ctrl-C or a signal sends a cancel to the host, which stops the command's process group (SIGINT, then SIGKILL after a 5 s grace period). A shell that is killed outright without signalling the shim leaves the host to notice the lost connection, which it does after 30 s without a ping.
 

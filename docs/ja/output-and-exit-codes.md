@@ -10,11 +10,13 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 
 | 行 | 出る場面 |
 |---|---|
-| `waiting for lock (held by: <argv>, <time>, run <id>)` | 同じプロジェクトの別の実行がローカルロックを保持しているとき。保持者の記録が読めない場合は `waiting for lock (held by unknown)`。 |
-| `waiting for remote lock (held by run <id>, <time>)` | ホスト側のプロジェクトのロックが、たとえば別のワークステーションによって保持されているとき。読めない場合は `... (held by unknown)`。 |
+| `waiting for lock (held by: <argv>, <time>, run <id>)` | プロジェクトの同じコピー（主コピーまたは同じ[スロット](configuration.md#slots)）の別の実行がローカルロックを保持しているとき。保持者の記録が読めない場合は `waiting for lock (held by unknown)`。 |
+| `waiting for remote lock (held by run <id>, <time>)` | ホスト側のそのコピーのロックが、たとえば別のワークステーションによって保持されているとき。読めない場合と、`fetch` や `forget` が保持している場合は `... (held by unknown)`。 |
 | `remote clock differs from local by <d>; make may misjudge mtimes` | 時計の差が 2 秒を超えたとき。 |
 | `remote state missing; locally deleted files may linger — run 'sendaway forget' to start clean` | ホストにプロジェクトのディレクトリはあるが、前回の push の記録がないとき。 |
-| `<host> <os>-<arch> · sync <s>s` | push の完了後に 1 回出る開始行。`<os>-<arch>` はホストのもので、たとえば `linux-amd64`。 |
+| `cannot measure free space on <path>: <error>` | ホストが空き容量を読めなかったとき。`min_free` のチェックなしで実行は続く。 |
+| `freed <size> (removed <root>, last used <age> ago)` | `min_free` に届くよう、ホストが使われていないコピー（ほかのプロジェクトのもの、またはこのプロジェクト自身のスロット）を削除したとき。削除したコピーごとに 1 行。 |
+| `<host> <os>-<arch> · sync <s>s` | push の完了後に 1 回出る開始行。`<os>-<arch>` はホストのもので、たとえば `linux-amd64`。スロットでは、ホストの部分が `<host> slot <n>` になる。 |
 | `some files vanished during sync` | 転送中にファイルが消えたと rsync が報告したとき。 |
 | `not sent (secret-like): <path>, ...` | シークレットのルールまたは `exclude:` で送られなかったファイル。 |
 | `tree is <x> MiB, over 256 MiB; largest: <path> (<x> MiB), ...` | マニフェストが 256 MiB を超えたとき。大きい順に 5 つのファイル名を挙げる。 |
@@ -24,7 +26,7 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 | （コマンドの出力） | 接頭辞なし。 |
 | `artifacts not collected: <path> (<reason>), ...` | 失敗した実行の後、artifacts が拒否されたとき（`symlink`、`elf`、`macho`、`pe`、`ar`、`limit`）。コピー自体が失敗した場合は `artifacts not collected: <error>`。 |
 | `remote run modified <n> synced files (not copied back): <paths> … and <k> more — add this target to local: or list the files in pull:` | コマンドが、回収されていない同期済みファイルを変更、置換、削除したとき。挙げるパスは最大 5 つで、`… and <k> more` は 5 つを超える場合にだけ付く。 |
-| `<host> exit <n> · <s>s · run <id> · log <path>` | トレーラー。コマンドがシグナルで死んだ場合は、`exit <n>` が `killed by signal <n>` に置き換わる。`<path>` は実行の `output.log`。 |
+| `<host> exit <n> · <s>s · run <id> · log <path>` | トレーラー。コマンドがシグナルで死んだ場合は、`exit <n>` が `killed by signal <n>` に置き換わる。`<path>` は実行の `output.log`。スロットでは、ホストの部分が `<host> slot <n>` になる。 |
 
 トレーラーは、完了した実行の最後の行です。中断された後にも出力され、その場合は shim を中断したシグナルについて `killed by signal <n>` となります。
 
@@ -40,8 +42,11 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 
 | 行 | 原因 |
 |---|---|
-| `<file>:<line>: <message>` | `.sendaway.yml` かユーザー設定が不正。 |
+| `<file>:<line>: <message>` | `.sendaway.yml` かユーザー設定が不正。たとえば `slots must be a whole number from 0 to 8`。 |
+| `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` | `SENDAWAY_SLOT` が、プロジェクトの有効にしていないスロットを指している。 |
+| `SENDAWAY_SLOT="<value>" is not a slot number` | `SENDAWAY_SLOT` が 0 以上の整数でない。 |
 | `no host configured (set host: or a matching route in <path>)` | 既定のホストがなく、一致するルートもない。 |
+| `git rev-parse: <git stderr>` | git がプロジェクトのトップレベルを報告できなかった。たとえばリポジトリの外。 |
 | `.sendaway.yml must sit at the git top level` | 設定がリポジトリのサブディレクトリにある。 |
 | `git worktrees are not supported` | `.git` がディレクトリでない。 |
 | `git submodule "<path>" is not supported` | ツリーにサブモジュールがある。 |
@@ -55,6 +60,7 @@ sendaway が追加する行はすべて `[sendaway] ` で始まり、stderr に�
 | `sync failed: <error>` | rsync が失敗した。 |
 | `remote clock differs from local by <d> (limit <d>); sync the clocks` | 時計の差が 60 秒を超えた。 |
 | `remote lock: <error>` | ホストのロックを取得できなかった。 |
+| `remote disk low: <free> free on <path>, min_free is <min>; removed <n> other copies — clean build outputs in this project or lower min_free` | 使われていないコピーを削除しても `min_free` に届かなかった。`; removed <n> other copies` は、コピーを削除した場合にだけ付く。 |
 | `prepare <command> exited <n>` | `prepare:` のコマンドが失敗した。 |
 | `pull refused: <path> (<reason>), ...` | `pull:` のパスがホストにない（`missing`）、シンボリックリンク（`symlink`）、ネイティブバイナリ（`elf`、`macho`、`pe`、`ar`）、アーカイブ（`archive`）である。何もコピーされない。 |
 | `pull destination <path> is a symlink; refusing to write through it` | ローカルの宛先にシンボリックリンクが含まれる。 |

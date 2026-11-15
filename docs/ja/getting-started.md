@@ -8,7 +8,7 @@
 go install github.com/libraz/sendaway/cmd/sendaway@latest
 ```
 
-必要な Go ツールチェーンのバージョンは、リポジトリの `go.mod` にある `go` ディレクティブのとおりです。Git と OpenSSH のインストールも必要です。macOS では、Homebrew の rsync 3.x を、システム標準の rsync より前に PATH へ置いてください。macOS 標準の rsync（openrsync）はプロトコル 29 を話すため拒否されます。sendaway にはプロトコル 31 以降が必要です。
+必要な Go ツールチェーンのバージョンは、リポジトリの `go.mod` にある `go` ディレクティブのとおりです。Git と OpenSSH のインストールも必要です。macOS では、Homebrew の rsync 3.x を、システム標準の rsync より前に PATH へ置いてください。macOS 標準の rsync（openrsync）はプロトコル 29 を話すため、`sendaway doctor` が失敗として報告します。sendaway にはプロトコル 31 以降が必要です。
 
 インストールを確認します。
 

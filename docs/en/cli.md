@@ -40,7 +40,7 @@ Writes `.sendaway.yml` in the current directory from the marker files found ther
 | `CMakeLists.txt` | remote `[cmake]`, `[ctest]` |
 | `go.mod` | remote `[go, test]`, `[go, build]`, `[go, vet]` |
 | `package.json` and `yarn.lock` | remote `[yarn, test]`, `[yarn, build]`; local `install`, `add`, `remove`, `dev`, `lint`, `format`; prepare `yarn install --immutable` on `yarn.lock`, `package.json` |
-| `package.json` and `pnpm-lock.yaml` | the same with `pnpm`; prepare `pnpm install --frozen-lockfile` |
+| `package.json` and `pnpm-lock.yaml` | remote `[pnpm, test]`, `[pnpm, build]`; local `install`, `add`, `remove`, `dev`; prepare `pnpm install --frozen-lockfile` on `pnpm-lock.yaml`, `package.json` |
 | `package.json` and `bun.lock` | remote `[bun, test]`, `[bun, run, build]`; local `install`, `add`, `remove`, `[bun, run, dev]`; prepare `bun install --frozen-lockfile` |
 | `Cargo.toml` | remote `[cargo, test]`, `[cargo, build]`; local `[cargo, fmt]`, `[cargo, add]` |
 | `mise.toml` | prepare `mise trust --yes` and `mise install` on `mise.toml` |
@@ -76,6 +76,7 @@ Prints findings in sections, each line starting with `ok`, `warn` or `FAIL`:
 - `shims (<dir>)`: for each installed shim, whether it comes first on PATH. Messages: `<name>: the shim comes first on PATH`, `<name>: <path> comes before the shim; put <dir> first in PATH`, `<name>: not found on PATH; add <dir> to PATH`. With no shims: `no shims installed; run 'sendaway install-shims'`.
 - `local tools`: the local rsync (`rsync <version> (protocol <n>)`, failing when the protocol is below 31) and the `cm` control directory (`<dir> is private (0700)`, `<dir> does not exist yet`, or a failure if the mode is not 0700).
 - `host <name>` for each distinct host in the user configuration: the checks listed in [Build host](build-host.md#what-doctor-checks-on-the-host). With no host configured: `no host configured in <path>`.
+- `project disk on <host>`, only inside a project that has a host: the free space on the host where the selected copy lives or would be created (`<host>: <size> free at <path> (min_free <size>)`, a `warn` below `min_free`, or `cannot read free space`). The copy is the one chosen by `SENDAWAY_SLOT`; an invalid value is a `FAIL` line here.
 
 Each ssh probe times out after 30 s. Exit 0 when no line is `FAIL`, 125 when any is; `warn` lines do not change the exit code.
 
@@ -121,9 +122,9 @@ Runs the real command locally regardless of the rules, with `SENDAWAY_PASSTHROUG
 sendaway fetch <path...>
 ```
 
-Copies root-relative paths from the host's copy of the project into the `fetched/` directory of the most recent recorded run (`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`), keeping their relative layout. The local tree is not changed. The most recent run is the newest record on this machine, which is not necessarily one of this project.
+Copies root-relative paths from the host's copy of the project (the one selected by `SENDAWAY_SLOT`, see [Slots](configuration.md#slots)) into the `fetched/` directory of the most recent recorded run (`${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/fetched/`), keeping their relative layout. The local tree is not changed. The most recent run is the newest record on this machine, which is not necessarily one of this project.
 
-The same checks as `pull:` apply: directories are copied recursively; missing paths, symlinks, native binaries and archives are refused (`pull refused: <path> (<reason>)`). Prints nothing on success. Exit 0, or 125 on failure, including `no runs recorded` when no run exists. Fetch waits for the host's lock for the project, so it queues behind a running command.
+The same checks as `pull:` apply: directories are copied recursively; missing paths, symlinks, native binaries and archives are refused (`pull refused: <path> (<reason>)`). Prints nothing on success. Exit 0, or 125 on failure, including `no runs recorded` when no run exists. Fetch waits for the host's lock for that copy, so it queues behind a running command.
 
 ## runs
 
@@ -168,7 +169,7 @@ log:      /Users/you/.local/state/sendaway/runs/r-20250101-120000-ab12/output.lo
 sendaway shell
 ```
 
-Replaces the process with an interactive ssh session to the project's host, in the project directory (`cd <root> && exec "$SHELL" -l`), with a tty. The connection shares the options of a run, minus `BatchMode` and `-T`, so a password prompt works. Nothing is synced; the host shows the tree as the last run left it. Exit status is ssh's. Use it to inspect a failed run's directory on the host.
+Replaces the process with an interactive ssh session to the project's host, in the directory of the copy selected by `SENDAWAY_SLOT` (`cd <root> && exec "$SHELL" -l`), with a tty. The connection shares the options of a run, minus `BatchMode` and `-T`, so a password prompt works. Nothing is synced; the host shows the tree as the last run left it. Exit status is ssh's. Use it to inspect a failed run's directory on the host.
 
 ## forget
 
@@ -176,7 +177,7 @@ Replaces the process with an interactive ssh session to the project's host, in t
 sendaway forget
 ```
 
-Removes the project's directory on the host and sendaway's remote state for it (the saved manifest and prepare hashes), after taking the host's lock for the project. On success it prints `[sendaway] <host>: removed <root> and its state`. The next run sends the whole tree again and re-runs every `prepare:` rule. Local run records are not touched. Exit 0, or 125 on failure.
+Removes the project's directory on the host and sendaway's remote state for it (the saved manifest and prepare hashes), after taking the host's lock for it. Only the copy selected by `SENDAWAY_SLOT` is removed; the other copies stay. On success it prints `[sendaway] <host>: removed <copy root> and its state`. The next run sends the whole tree again and re-runs every `prepare:` rule. Local run records are not touched. Exit 0, or 125 on failure.
 
 ## version
 

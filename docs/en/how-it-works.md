@@ -22,7 +22,7 @@ The shim takes a local lock per copy of the project on the host (keyed by the co
 
 ## 3. File sets
 
-![Git splits the working tree into a manifest, a secret set carved out of it and an ignored set; one rsync sends the manifest minus the secret set to the same absolute path and a parallel rsync syncs .git, while the host deletes what the previous run sent and this one does not, leaves ignored paths alone, and a submodule, nested repository or non-NFC name ends the run with exit 125 before anything is sent.](../images/file-sets.svg)
+![Git splits the working tree into a manifest, a secret set carved out of it and an ignored set; one rsync sends the manifest minus the secret set to the same absolute path (a slot copy uses `<root>.slot-<n>`) and a parallel rsync syncs .git, while the host deletes what the previous run sent and this one does not, leaves ignored paths alone, and a submodule, nested repository or non-NFC name ends the run with exit 125 before anything is sent.](../images/file-sets.svg)
 
 The shim builds three sets with git, so negation patterns, `.git/info/exclude` and `core.excludesFile` behave as they do for git:
 
@@ -40,7 +40,7 @@ The run uses one ssh connection, started as `sendaway remote-exec` on the host a
 
 1. **hello.** The host sends its protocol, version, OS and architecture. If the protocol differs, the run stops with the message `protocol mismatch: local sendaway <version> speaks protocol <n>, remote sendaway <version> speaks protocol <n>; install the same version on both sides`.
 2. **request.** The shim sends one JSON line: the run id, root, working directory, command, forwarded environment, manifest, prepare rules, `pull:` and `artifacts:` paths, whether output is merged, the send time, and the `min_free` floor.
-3. **Remote lock.** The host takes a lock for the project root. While it is held by another session the host reports `waiting for remote lock (held by run <id>, <time>)`. The host also compares clocks here: a difference over 2 s is noted, over 60 s ends the run with `remote clock differs from local by <d> (limit <d>); sync the clocks`.
+3. **Remote lock.** The host takes a lock for the copy's root. While it is held by another session the host reports `waiting for remote lock (held by run <id>, <time>)`. The host also compares clocks here: a difference over 2 s is noted, over 60 s ends the run with `remote clock differs from local by <d> (limit <d>); sync the clocks`.
 4. **Deletions.** The host deletes files from its copy that the previous run sent and this one does not, then removes parent directories that became empty. A path whose type changed (a file where a directory is needed, a directory where a file or symlink is needed) is cleared so the push can replace it. A directory that exists only on the host is never removed. Without remote state, the host notes `remote state missing; locally deleted files may linger — run 'sendaway forget' to start clean`.
 5. **ready.** The host reports it is ready for the push.
 6. **Push.** Two rsyncs run in parallel: one for the working tree, one for `.git`. The tree rsync is anchored at the root and excludes the ignored set, the secret set and `exclude:` entries. The `.git` rsync deletes stale files there but leaves `config`, `FETCH_HEAD`, `hooks/`, `logs/`, `*.lock` and `objects/tmp_*` alone. An rsync exit of 24 (files vanished) is tolerated and reported as `some files vanished during sync`.
@@ -50,7 +50,7 @@ The run uses one ssh connection, started as `sendaway remote-exec` on the host a
 
 A session cancelled before `pushed` leaves the host's saved manifest as it was.
 
-**Free space.** Under the lock, the host records the project root in its state and takes the time as the project's last use. Before the deletions it measures the free space of the filesystem holding the root (of the nearest existing parent when the root is not there yet). Below `min_free` it removes the copies of other projects, least recently used first, and notes each as `freed <size> (removed <root>, last used <age> ago)`, stopping as soon as enough is free. A copy is only a candidate when its recorded root is a clean absolute path that hashes to its own state directory (so an edited record cannot redirect a deletion), lies on the same filesystem, is neither above, below nor equal to this project's root, does not contain sendaway's own state directory, and its lock is free. If the space is still short, the run fails with `remote disk low: <free> free on <path>, min_free is <min>; removed <n> other copies — clean build outputs in this project or lower min_free`. A `min_free` of `0` skips the check.
+**Free space.** Under the lock, the host records the copy's root in its state and takes the time as the project's last use. Before the deletions it measures the free space of the filesystem holding the root (of the nearest existing parent when the root is not there yet). Below `min_free` it removes the copies of other projects and the project's own idle slots, least recently used first, and notes each as `freed <size> (removed <root>, last used <age> ago)`, stopping as soon as enough is free. A copy is only a candidate when its recorded root is a clean absolute path that hashes to its own state directory (so an edited record cannot redirect a deletion), lies on the same filesystem, is neither above, below nor equal to this copy's root, does not contain sendaway's own state directory, and its lock is free. If the space is still short, the run fails with `remote disk low: <free> free on <path>, min_free is <min>; removed <n> other copies — clean build outputs in this project or lower min_free`. A `min_free` of `0` skips the check.
 
 ## 5. How the command is launched
 
@@ -108,7 +108,7 @@ Each run has a directory `${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/<id>/`
 | File | Content |
 |---|---|
 | `output.log` | Everything shown during the run |
-| `meta.json` | Command, working directory, root, host, times, exit code, signal, modified files, tree fingerprint, error text |
+| `meta.json` | Command, working directory, root, host, slot (when not 0), times, exit code, signal, modified files, tree fingerprint, error text |
 | `artifacts/` | Files collected after a failure |
 | `fetched/` | Files brought back by `sendaway fetch` |
 

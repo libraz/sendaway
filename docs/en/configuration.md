@@ -112,15 +112,15 @@ exclude: [fixtures/private, docs/large.pdf]
 
 ### `slots`
 
-`slots` lets several runs of one project be in progress at once. It is off by default: one run per project, others wait for the lock.
+`slots` lets several runs of one project be in progress at once. It is off by default (`slots: 0`): one run per project, others wait for the lock.
 
 ```yaml
 slots: 2
 ```
 
-- `slots: N` enables slots 1 to N (at most 8) beside the project's main copy. A slot is a second copy of the project on the host, at `<root>.slot-<n>`, with its own lock, tree and build outputs.
-- An invocation picks a slot with the `SENDAWAY_SLOT` environment variable: `SENDAWAY_SLOT=1 make test`. Unset, empty or `0` is the main copy. The variable applies to shims, `run`, `fetch`, `shell` and `forget` alike, so `SENDAWAY_SLOT=1 sendaway fetch <path>` reads the slot's copy.
-- A slot the project does not enable fails with `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` and exit 125.
+- `slots: N`, with N from 0 to 8, enables slots 1 to N beside the project's main copy. A slot is a second copy of the project on the host, at `<root>.slot-<n>`, with its own lock, tree and build outputs.
+- An invocation picks a slot with the `SENDAWAY_SLOT` environment variable: `SENDAWAY_SLOT=1 make test`. Unset, empty or `0` is the main copy. The variable is read only by commands that use a host copy: shims that run remotely, `run`, `fetch`, `shell` and `forget`, so `SENDAWAY_SLOT=1 sendaway fetch <path>` reads the slot's copy. `doctor` checks the selected copy's disk. Commands that stay local, and `which`, ignore it.
+- A slot the project does not enable fails those commands with `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` and exit 125. A value that is not a number fails with `SENDAWAY_SLOT="<value>" is not a slot number`.
 - Runs in the same slot still wait for each other. The start and closing lines name the slot: `build01 slot 1 linux-amd64 · sync 0.42s`.
 - The first run in a slot sends the whole tree and builds from scratch; later runs there are incremental. Each slot uses as much disk as the main copy, and idle slots are evicted like any other copy when `min_free` is short.
 
@@ -162,14 +162,14 @@ An alternative ssh configuration file, passed to ssh and rsync as `-F`. A leadin
 
 The free space the build host must keep before a command runs, as an integer with a binary unit: `B`, `KiB`, `MiB`, `GiB` or `TiB` (for example `20GiB` or `512MiB`). The default is `20GiB`. A bare `0` disables the check; any other number needs a unit. Negative values, fractions and other units are rejected, for example `min_free "20GB" has an unknown unit "GB" (use B, KiB, MiB, GiB or TiB)`.
 
-The host measures the filesystem that holds the project root. When less than `min_free` is available it removes the copies of other projects before the run (see [How it works](how-it-works.md#4-session)). The setting applies to every host.
+The host measures the filesystem that holds the project root. When less than `min_free` is available it removes the copies of other projects, and the project's own idle slots, before the run (see [How it works](how-it-works.md#4-session)). The setting applies to every host.
 
 ## Where state lives
 
 | Location | Content |
 |---|---|
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/runs/` | Run records |
-| `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | Per-project local locks |
+| `${XDG_STATE_HOME:-~/.local/state}/sendaway/locks/` | Local locks, one per copy of a project |
 | `${XDG_STATE_HOME:-~/.local/state}/sendaway/cm/` | ssh control sockets |
 | `${XDG_DATA_HOME:-~/.local/share}/sendaway/bin/` | Shims |
-| `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` on the host | Remote per-project state, including a `root` file naming the project and recording when it was last used |
+| `${XDG_STATE_HOME:-~/.local/state}/sendaway/repos/` on the host | Remote state, one directory per copy of a project, including a `root` file naming the project and recording when it was last used |

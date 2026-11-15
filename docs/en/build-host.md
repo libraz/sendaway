@@ -2,17 +2,17 @@
 
 The build host is a Linux machine reached over ssh. It runs `sendaway remote-exec` on demand and starts the project's commands. It needs no daemon.
 
-![The project sits at the same absolute path on the host, and the command runs under the login shell with an environment rebuilt from the host's HOME, USER, LOGNAME, SHELL and PATH, the filtered forwarded variables and SENDAWAY_PASSTHROUGH=1, with forwarded values applied over the profile.](../images/host-launch.svg)
+![The project sits at the same absolute path on the host (a slot copy at `<root>.slot-<n>`), and the command runs under the login shell with an environment rebuilt from the host's HOME, USER, LOGNAME, SHELL and PATH, the filtered forwarded variables and SENDAWAY_PASSTHROUGH=1, with forwarded values applied over the profile.](../images/host-launch.svg)
 
 ## Requirements
 
 - Key authentication only. `AllowAgentForwarding no`, `AllowTcpForwarding no` and `ClientAliveInterval 15` in `sshd_config`.
 - Time synchronization (chrony or similar). A clock difference over 2 s is noted during a run, and over 60 s fails it.
 - No git credentials, no keys to other hosts, and no sudo for the user sendaway runs as.
-- The same absolute parent path as on the workstation (for example `/Users/<name>`), created and owned by that user. A project at `/Users/alice/Projects/big-repo` is synced to `/Users/alice/Projects/big-repo` on the host.
+- The same absolute parent path as on the workstation (for example `/Users/<name>`), created and owned by that user. A project at `/Users/alice/Projects/big-repo` is synced to `/Users/alice/Projects/big-repo` on the host; a [slot](configuration.md#slots) copy goes to `/Users/alice/Projects/big-repo.slot-<n>`.
 - rsync 3.1 or later, and `sendaway` in `/usr/local/bin`, where a non-login ssh finds it.
 - Login profile and rc files that print nothing to stdout.
-- Free disk space of at least `min_free` (default 20 GiB) on the filesystem that holds the project paths. When less is available, a run first removes the least recently used copies of other projects on that filesystem (see [Configuration](configuration.md#min_free)).
+- Free disk space of at least `min_free` (default 20 GiB) on the filesystem that holds the project paths. When less is available, a run first removes the least recently used copies of other projects, and the project's own idle slots, on that filesystem (see [Configuration](configuration.md#min_free)).
 - The project's toolchain on PATH in the login profile.
 
 The sendaway on the host must speak the same protocol as the local one. `sendaway version` prints both on either side.
@@ -28,7 +28,7 @@ The sendaway on the host must speak the same protocol as the local one. `sendawa
 7. **Put the toolchain on PATH in the login profile.** The command runs under `$SHELL -lc`, so a login shell reads the profile (for bash, `~/.bash_profile` or `~/.profile`) before the command starts. Compilers, `mise`, `cargo`, `go`, `node` and package managers must be found there. A PATH set only in an interactive rc file is not seen.
 8. **Keep rc and profile files quiet.** Output from a non-login rc file corrupts the protocol framing on stdout. Output from the login profile appears in the command's own stdout. Guard banners, `echo` lines and `motd`-style output behind an interactive-terminal test.
 9. **Add the ssh Host entry** on the workstation, run `ssh build01` once for the host key, and add the host to the user configuration (see [Getting started](getting-started.md)).
-10. **Route heavy projects separately.** A host runs one run per project at a time, and runs of different projects compete for the same CPUs. Give a project that builds for a long time its own host with a `routes:` entry (see [Configuration](configuration.md#routes)).
+10. **Route heavy projects separately.** A host runs one run per copy of a project at a time, and runs of different projects compete for the same CPUs. Give a project that builds for a long time its own host with a `routes:` entry (see [Configuration](configuration.md#routes)).
 11. **Run `sendaway doctor`** on the workstation.
 
 ## What doctor checks on the host
@@ -43,7 +43,7 @@ For each host in the user configuration (the default host and every route host) 
 | `date +%s` is within 2 s of the local clock | `<host>: clock within 2s` |
 | Each installed shim name resolves in the login shell (`$SHELL -lc 'command -v <name>'`) | `<host>: <path>` |
 
-Inside a project, doctor also runs `df -Pk` on the host for the nearest existing parent of the project root and prints `<host>: <free> free at <path> (min_free <min>)`. Free space below `min_free` is a warning.
+Inside a project, doctor also runs `df -Pk` on the host for the nearest existing parent of the selected copy's root (the project root, or the slot copy chosen by `SENDAWAY_SLOT`) and prints `<host>: <free> free at <path> (min_free <min>)`. Free space below `min_free` is a warning.
 
 A failed connection stops the checks for that host and prints the ssh error. A `Host key verification failed` error adds the hint `run 'ssh <host>' by hand once to add the host to known_hosts`.
 

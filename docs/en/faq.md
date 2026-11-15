@@ -28,7 +28,7 @@
 
 ## Waiting for a lock
 
-`waiting for lock (held by: ...)` means another run in the same project, on this workstation, holds the lock. `waiting for remote lock (held by run <id>, ...)` means the host's lock is held, typically by a run from another workstation or by `fetch` and `forget`. The wait ends when the holder finishes or dies; the kernel releases the lock when the process exits. Ctrl-C ends the wait. `sendaway runs` shows what is recorded.
+`waiting for lock (held by: ...)` means another run in the same copy of the project (the main copy or the same slot), on this workstation, holds the lock. `waiting for remote lock (held by run <id>, ...)` means the host's lock for that copy is held, typically by a run from another workstation. `waiting for remote lock (held by unknown)` appears when `fetch` or `forget` holds it, since they carry no run id. The wait ends when the holder finishes or dies; the kernel releases the lock when the process exits. Ctrl-C ends the wait. `sendaway runs` shows what is recorded.
 
 ## Clock skew
 
@@ -62,7 +62,7 @@ The host has a copy of the project but no record of what the last push contained
 
 ## rsync rejected: openrsync
 
-`rsync protocol too old: rsync <version> speaks protocol 29, need 31 or newer (install rsync 3.x, e.g. Homebrew)` is macOS's built-in rsync. Install rsync 3.x with Homebrew and put it ahead of `/usr/bin` on PATH. `sendaway doctor` reports the version in use.
+`rsync protocol too old: rsync <version> speaks protocol 29, need 31 or newer (install rsync 3.x, e.g. Homebrew)` is macOS's built-in rsync, and `sendaway doctor` fails on it (under `local tools`). Install rsync 3.x with Homebrew and put it ahead of `/usr/bin` on PATH; doctor then reports the version in use.
 
 ## ControlPath too long
 

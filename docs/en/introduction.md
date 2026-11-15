@@ -10,7 +10,7 @@ A project opts in with one `.sendaway.yml` at its git top level. Commands that m
 
 1. **Shim.** The `sendaway` binary is linked under the names of the commands it should intercept (`make`, `go`, `yarn` and so on). When the binary runs under any other name than `sendaway`, it acts as a shim for that command.
 2. **Rule match.** The shim finds `.sendaway.yml` above the current directory and compares the command line with the `remote:` and `local:` rules. A `local:` match wins. A command that matches nothing, or a directory with no `.sendaway.yml`, runs the real binary directly.
-3. **One-way sync just before the run.** The files git tracks, plus untracked files git does not ignore, are copied to the same absolute path on the host with rsync. Secret-looking files are held back. Nothing flows from the host to the Mac during the sync.
+3. **One-way sync just before the run.** The files git tracks, plus untracked files git does not ignore, are copied to the same absolute path on the host with rsync (a [slot](configuration.md#slots) copy uses `<root>.slot-<n>`). Secret-looking files are held back. Nothing flows from the host to the Mac during the sync.
 4. **Remote process group.** The host starts the command through a login shell in its own process group, with an environment rebuilt from a short allowlist.
 5. **Frames back.** Output, notes and the exit status return over the single ssh connection as length-prefixed frames. The shim writes them to its own stdout and stderr and ends with the same exit code, or dies by the same signal.
 6. **Collection.** Paths listed in `pull:` are copied back after a successful run, and paths listed in `artifacts:` after a failed one.

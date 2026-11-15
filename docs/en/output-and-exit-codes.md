@@ -10,11 +10,13 @@ In the order they appear.
 
 | Line | When |
 |---|---|
-| `waiting for lock (held by: <argv>, <time>, run <id>)` | Another run in the same project holds the local lock. `waiting for lock (held by unknown)` when the holder record is unreadable. |
-| `waiting for remote lock (held by run <id>, <time>)` | The host's lock for the project is held, for example by another workstation. `... (held by unknown)` when unreadable. |
+| `waiting for lock (held by: <argv>, <time>, run <id>)` | Another run in the same copy of the project (the main copy or the same [slot](configuration.md#slots)) holds the local lock. `waiting for lock (held by unknown)` when the holder record is unreadable. |
+| `waiting for remote lock (held by run <id>, <time>)` | The host's lock for the copy is held, for example by another workstation. `... (held by unknown)` when unreadable, and when `fetch` or `forget` holds it. |
 | `remote clock differs from local by <d>; make may misjudge mtimes` | Clock difference over 2 s. |
 | `remote state missing; locally deleted files may linger — run 'sendaway forget' to start clean` | The host has a project directory but no record of the previous push. |
-| `<host> <os>-<arch> · sync <s>s` | Start line, once the push has finished. `<os>-<arch>` is the host's, for example `linux-amd64`. |
+| `cannot measure free space on <path>: <error>` | The host could not read the free space; the run continues without the `min_free` check. |
+| `freed <size> (removed <root>, last used <age> ago)` | The host removed an idle copy (another project's, or this project's own slot) to reach `min_free`. One line per removed copy. |
+| `<host> <os>-<arch> · sync <s>s` | Start line, once the push has finished. `<os>-<arch>` is the host's, for example `linux-amd64`. In a slot the host reads `<host> slot <n>`. |
 | `some files vanished during sync` | rsync reported files that disappeared during the transfer. |
 | `not sent (secret-like): <path>, ...` | Files withheld by the secret rules or `exclude:`. |
 | `tree is <x> MiB, over 256 MiB; largest: <path> (<x> MiB), ...` | The manifest is larger than 256 MiB; names the five largest files. |
@@ -24,7 +26,7 @@ In the order they appear.
 | (command output) | Unprefixed. |
 | `artifacts not collected: <path> (<reason>), ...` | After a failed run, artifacts refused (`symlink`, `elf`, `macho`, `pe`, `ar`, `limit`). `artifacts not collected: <error>` if the copy failed. |
 | `remote run modified <n> synced files (not copied back): <paths> … and <k> more — add this target to local: or list the files in pull:` | The command changed, replaced or deleted synced files that were not collected. At most five paths are named; `… and <k> more` appears only past five. |
-| `<host> exit <n> · <s>s · run <id> · log <path>` | Trailer. `killed by signal <n>` replaces `exit <n>` when the command died by a signal. `<path>` is the run's `output.log`. |
+| `<host> exit <n> · <s>s · run <id> · log <path>` | Trailer. `killed by signal <n>` replaces `exit <n>` when the command died by a signal. `<path>` is the run's `output.log`. In a slot the host reads `<host> slot <n>`. |
 
 The trailer is the last line of a completed run. It is also printed after an interrupt, with `killed by signal <n>` for the signal that interrupted the shim.
 
@@ -40,8 +42,11 @@ A failing run prints one of these as its last line and exits with 125. No traile
 
 | Line | Cause |
 |---|---|
-| `<file>:<line>: <message>` | Invalid `.sendaway.yml` or user configuration. |
+| `<file>:<line>: <message>` | Invalid `.sendaway.yml` or user configuration, for example `slots must be a whole number from 0 to 8`. |
+| `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` | `SENDAWAY_SLOT` names a slot the project does not enable. |
+| `SENDAWAY_SLOT="<value>" is not a slot number` | `SENDAWAY_SLOT` is not a non-negative whole number. |
 | `no host configured (set host: or a matching route in <path>)` | No default host and no matching route. |
+| `git rev-parse: <git stderr>` | git could not report the top level of the project, for example outside a repository. |
 | `.sendaway.yml must sit at the git top level` | The configuration is in a subdirectory of the repository. |
 | `git worktrees are not supported` | `.git` is not a directory. |
 | `git submodule "<path>" is not supported` | The tree contains a submodule. |
@@ -55,6 +60,7 @@ A failing run prints one of these as its last line and exits with 125. No traile
 | `sync failed: <error>` | rsync failed. |
 | `remote clock differs from local by <d> (limit <d>); sync the clocks` | Clock difference over 60 s. |
 | `remote lock: <error>` | The host's lock could not be taken. |
+| `remote disk low: <free> free on <path>, min_free is <min>; removed <n> other copies — clean build outputs in this project or lower min_free` | Evicting idle copies did not free `min_free`. The `; removed <n> other copies` part appears only when copies were removed. |
 | `prepare <command> exited <n>` | A `prepare:` command failed. |
 | `pull refused: <path> (<reason>), ...` | `pull:` paths that are missing (`missing`), symlinks (`symlink`), native binaries (`elf`, `macho`, `pe`, `ar`) or archives (`archive`). Nothing is copied. |
 | `pull destination <path> is a symlink; refusing to write through it` | A local destination contains a symlink. |
