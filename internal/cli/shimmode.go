@@ -40,7 +40,7 @@ func shimMain(args []string) int {
 // remoteRun runs argv on the host and ends the process as the command did.
 // It returns only a failure code.
 func remoteRun(proj *project, argv []string) int {
-	t, err := resolveTarget(proj.root)
+	t, err := resolveTarget(proj)
 	if err != nil {
 		return fail(os.Stderr, err)
 	}

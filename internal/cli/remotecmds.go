@@ -49,7 +49,7 @@ func fetchCmd(paths []string, stderr *os.File) int {
 	if err != nil {
 		return fail(stderr, err)
 	}
-	t, err := resolveTarget(proj.root)
+	t, err := resolveTarget(proj)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -69,14 +69,14 @@ func forgetCmd(args []string, _ io.Writer, stderr *os.File) int {
 	if err != nil {
 		return fail(stderr, err)
 	}
-	t, err := resolveTarget(proj.root)
+	t, err := resolveTarget(proj)
 	if err != nil {
 		return fail(stderr, err)
 	}
 	if code := finish(run.Forget(t.params(proj, stderr))); code != 0 {
 		return code
 	}
-	_, _ = fmt.Fprintf(stderr, "[sendaway] %s: removed %s and its state\n", t.host, proj.remote)
+	_, _ = fmt.Fprintf(stderr, "[sendaway] %s: removed %s and its state\n", t.host, t.remote)
 	return 0
 }
 
@@ -96,11 +96,11 @@ func shellCmd(args []string) error {
 	if err != nil {
 		return err
 	}
-	t, err := resolveTarget(proj.root)
+	t, err := resolveTarget(proj)
 	if err != nil {
 		return err
 	}
-	argv, err := shellArgv(t.client, proj.remote)
+	argv, err := shellArgv(t.client, t.remote)
 	if err != nil {
 		return err
 	}

@@ -205,7 +205,11 @@ func doctorCmd(out io.Writer) int {
 			if h := user.HostFor(proj.root); h != "" {
 				section("project disk on " + h)
 				client := &sshx.Client{Host: h, SSHConfig: user.SSHConfig, StateDir: state}
-				add(checkDisk(client, proj.root, user.MinFree))
+				if slot, err := selectSlot(os.Getenv(slotEnv), proj.cfg.Slots); err != nil {
+					add(finding{text: err.Error()})
+				} else {
+					add(checkDisk(client, slotRoot(proj.root, slot), user.MinFree))
+				}
 			}
 		}
 	}

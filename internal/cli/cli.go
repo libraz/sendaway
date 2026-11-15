@@ -148,10 +148,6 @@ type project struct {
 	root string
 	cwd  string
 	cfg  *config.Project
-	// slot is the slot selected by SENDAWAY_SLOT, 0 for the main copy, and
-	// remote is the root of that copy on the host.
-	slot   int
-	remote string
 }
 
 // slotEnv selects one of the project's slots for this invocation.
@@ -199,24 +195,30 @@ func loadProject(cwd string) (*project, error) {
 	if err != nil {
 		return nil, err
 	}
-	slot, err := selectSlot(os.Getenv(slotEnv), cfg.Slots)
-	if err != nil {
-		return nil, err
-	}
-	root := filepath.Dir(file)
-	return &project{file: file, root: root, cwd: resolved, cfg: cfg, slot: slot, remote: slotRoot(root, slot)}, nil
+	return &project{file: file, root: filepath.Dir(file), cwd: resolved, cfg: cfg}, nil
 }
 
-// target is the host a project's commands run on, with its transport.
+// target is the host a project's commands run on, with its transport, and
+// the copy of the project there that this invocation uses.
 type target struct {
 	host   string
 	user   *config.User
 	client *sshx.Client
 	state  string
+	// slot is the slot selected by SENDAWAY_SLOT, 0 for the main copy, and
+	// remote is the root of that copy on the host.
+	slot   int
+	remote string
 }
 
-// resolveTarget picks the host for root from the user configuration.
-func resolveTarget(root string) (*target, error) {
+// resolveTarget picks the host for the project from the user configuration
+// and the copy selected by SENDAWAY_SLOT. The slot is read only here, so a
+// command that stays local never depends on it.
+func resolveTarget(p *project) (*target, error) {
+	slot, err := selectSlot(os.Getenv(slotEnv), p.cfg.Slots)
+	if err != nil {
+		return nil, err
+	}
 	path, err := config.DefaultUserPath()
 	if err != nil {
 		return nil, err
@@ -225,7 +227,7 @@ func resolveTarget(root string) (*target, error) {
 	if err != nil {
 		return nil, err
 	}
-	host := user.HostFor(root)
+	host := user.HostFor(p.root)
 	if host == "" {
 		return nil, fmt.Errorf("no host configured (set host: or a matching route in %s)", path)
 	}
@@ -234,13 +236,13 @@ func resolveTarget(root string) (*target, error) {
 		return nil, err
 	}
 	return &target{
-		host: host, user: user, state: state,
+		host: host, user: user, state: state, slot: slot, remote: slotRoot(p.root, slot),
 		client: &sshx.Client{Host: host, SSHConfig: user.SSHConfig, StateDir: state},
 	}, nil
 }
 
 func (t *target) params(p *project, stderr *os.File) run.Params {
-	return run.Params{Root: p.root, Remote: p.remote, Slot: p.slot, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client, MinFree: t.user.MinFree}
+	return run.Params{Root: p.root, Remote: t.remote, Slot: t.slot, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client, MinFree: t.user.MinFree}
 }
 
 func joinWords(words []string) string { return "[" + strings.Join(words, ", ") + "]" }

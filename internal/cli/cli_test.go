@@ -203,6 +203,14 @@ func TestWhich(t *testing.T) {
 		t.Errorf("no config:\n%s", got)
 	}
 
+	// The slot is chosen only where a host copy is used, so a stale value
+	// cannot break a command that stays local.
+	t.Setenv("SENDAWAY_SLOT", "3")
+	if got := run(sub, "make", "format"); !strings.Contains(got, "decision: local (matches local rule [make, format])") {
+		t.Errorf("local rule with an unenabled slot:\n%s", got)
+	}
+	t.Setenv("SENDAWAY_SLOT", "")
+
 	t.Setenv("SENDAWAY_PASSTHROUGH", "1")
 	if got := run(sub, "make"); !strings.Contains(got, "decision: local (SENDAWAY_PASSTHROUGH is set)") {
 		t.Errorf("passthrough:\n%s", got)
