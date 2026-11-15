@@ -122,7 +122,7 @@ slots: 2
 - An invocation picks a slot with the `SENDAWAY_SLOT` environment variable: `SENDAWAY_SLOT=1 make test`. Unset, empty or `0` is the main copy. The variable is read only by commands that use a host copy: shims that run remotely, `run`, `fetch`, `shell` and `forget`, so `SENDAWAY_SLOT=1 sendaway fetch <path>` reads the slot's copy. `doctor` checks the selected copy's disk. Commands that stay local, and `which`, ignore it.
 - A slot the project does not enable fails those commands with `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` and exit 125. A value that is not a number fails with `SENDAWAY_SLOT="<value>" is not a slot number`.
 - Runs in the same slot still wait for each other. The start and closing lines name the slot: `build01 slot 1 linux-amd64 · sync 0.42s`.
-- The first run in a slot sends the whole tree and builds from scratch; later runs there are incremental. Each slot uses as much disk as the main copy, and idle slots are evicted like any other copy when `min_free` is short.
+- The first run in a slot sends the whole tree and builds from scratch; later runs there are incremental. Ignored directories such as `build/` do not exist in a new slot yet, so a command that writes into one must create it first. Each slot uses as much disk as the main copy, and idle slots are evicted like any other copy when `min_free` is short.
 
 The same path rules apply to `pull`, `artifacts` and `when`.
 

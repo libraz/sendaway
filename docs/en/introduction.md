@@ -28,6 +28,17 @@ Every run is recorded locally with its output, so a result can be read again wit
 - It does not clean up processes that leave the process group by calling `setsid` themselves.
 - It does not authenticate to private package registries. The host holds no credentials, and `.npmrc` or `.yarnrc.yml` files carrying tokens are not sent.
 
+## In use
+
+sendaway runs the builds and tests of three of the author's projects: [formulon](https://github.com/libraz/formulon), [libsonare](https://github.com/libraz/libsonare) and [midi-sketch-bach](https://github.com/libraz/midi-sketch-bach). All three are C++ code bases whose test suites take minutes to tens of minutes. The workstation is one laptop with several coding-agent sessions open, limited to 8 local compile workers in total; the hosts are Linux machines with 24 to 40 cores. The figures come from the run records of November 2026. No job was timed both locally and remotely, so they show the load the hosts took, not a speed-up.
+
+- Sync before a run: median 0.2 s in midi-sketch-bach and 0.4 s in formulon, at most 2.3 s.
+- midi-sketch-bach: 68 runs in about a day, 12.4 hours of host time, median run 7 minutes, longest 49 minutes. Local load stayed around 9 to 13 meanwhile. Four sessions share the project, and with `slots: 2` three runs proceed at once. Before slots, each job waited 10 to 30 minutes behind the project lock.
+- formulon: 25 runs, median just under 2 minutes, longest 48 minutes (a clean build followed by every test tier). Eight sessions across four repositories share the laptop.
+- libsonare: only `cmake` and `ctest` checks go to the host. Its heaviest work scores renders against reference audio that is not in git, and its golden values are recorded on macOS, so both stay local.
+
+What stays local in all three: work that reads files git does not carry, results that are only valid on macOS, and targets that drive a desktop application or a browser on the Mac.
+
 ## Where to go next
 
 - [Getting started](getting-started.md) installs sendaway and runs a first command.
