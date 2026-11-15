@@ -44,6 +44,7 @@ prepare:
 pull: [dist/wasm/]
 artifacts: [build/Testing/Temporary/LastTest.log]
 exclude: [fixtures/private]
+slots: 2
 `
 		path := writeFile(t, t.TempDir(), ProjectFile, src)
 		got, err := LoadProject(path)
@@ -58,6 +59,7 @@ exclude: [fixtures/private]
 			Pull:      []string{"dist/wasm"},
 			Artifacts: []string{"build/Testing/Temporary/LastTest.log"},
 			Exclude:   []string{"fixtures/private"},
+			Slots:     2,
 		}
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %+v\nwant %+v", got, want)
@@ -93,6 +95,10 @@ exclude: [fixtures/private]
 		{"exclude absolute", "exclude: [/tmp/x]\n", "absolute path"},
 		{"exclude root", "exclude: [.]\n", "names the project root"},
 		{"exclude empty", "exclude: [\"\"]\n", "empty path"},
+		{"slots negative", "slots: -1\n", "f:1: slots must be a whole number from 0 to 8"},
+		{"slots too many", "slots: 9\n", "slots must be a whole number"},
+		{"slots not a number", "slots: two\n", "slots must be a whole number"},
+		{"slots list", "slots: [1]\n", "f:1: slots must be a string"},
 		{"prepare missing run", "prepare:\n  - when: [a]\n", "f:2: prepare rule needs a non-empty run"},
 		{"prepare missing when", "prepare:\n  - run: [a]\n", "f:2: prepare rule needs a non-empty when"},
 		{"prepare when dotdot", "prepare:\n  - when: [../a]\n    run: [b]\n", "f:2:"},

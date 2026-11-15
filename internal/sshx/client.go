@@ -137,10 +137,10 @@ func (c *Client) Open(ctx context.Context) (*Session, error) {
 	}, nil
 }
 
-// Push syncs the working tree and .git of root to the same path on the host, in two
+// Push syncs the working tree and .git of root to dest on the host, in two
 // concurrent rsyncs. excludes are literal root-relative paths (anchored with a leading
 // slash, directories with a trailing slash); their rsync metacharacters are escaped here.
-func (c *Client) Push(ctx context.Context, root string, excludes []string) (PushResult, error) {
+func (c *Client) Push(ctx context.Context, root, dest string, excludes []string) (PushResult, error) {
 	shell, err := c.rsyncShell()
 	if err != nil {
 		return PushResult{}, err
@@ -189,8 +189,8 @@ func (c *Client) Push(ctx context.Context, root string, excludes []string) (Push
 		}
 	}
 	wg.Add(2)
-	go run("tree", bodyPushArgs(shell, c.Host, root), list.Bytes(), true)
-	go run(".git", gitPushArgs(shell, c.Host, root), nil, false)
+	go run("tree", bodyPushArgs(shell, c.Host, root, dest), list.Bytes(), true)
+	go run(".git", gitPushArgs(shell, c.Host, root, dest), nil, false)
 	wg.Wait()
 	if firstErr != nil {
 		return PushResult{}, firstErr
@@ -248,21 +248,21 @@ func rsyncPath(root string) string {
 	return "--rsync-path=mkdir -p " + ShellQuote(root) + " && rsync"
 }
 
-func bodyPushArgs(shell, host, root string) []string {
+func bodyPushArgs(shell, host, root, dest string) []string {
 	return []string{
 		"-rlpt", "-s", "-8", "--exclude=/.git", "-0", "--exclude-from=-",
-		"-e", shell, rsyncPath(root), "--out-format=%n",
-		root + "/", host + ":" + root + "/",
+		"-e", shell, rsyncPath(dest), "--out-format=%n",
+		root + "/", host + ":" + dest + "/",
 	}
 }
 
-func gitPushArgs(shell, host, root string) []string {
+func gitPushArgs(shell, host, root, dest string) []string {
 	return []string{
 		"-rlpt", "-s", "--delete",
 		"--exclude=/config", "--exclude=/FETCH_HEAD", "--exclude=/hooks/", "--exclude=/logs/",
 		"--exclude=*.lock", "--exclude=/objects/tmp_*",
-		"-e", shell, rsyncPath(root),
-		root + "/.git/", host + ":" + root + "/.git/",
+		"-e", shell, rsyncPath(dest),
+		root + "/.git/", host + ":" + dest + "/.git/",
 	}
 }
 

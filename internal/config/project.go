@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -26,7 +27,14 @@ type Project struct {
 	Pull      []string // root-relative, cleaned
 	Artifacts []string // root-relative, cleaned
 	Exclude   []string // root-relative, cleaned; no globs
+	// Slots is how many extra copies of the project the host may hold, each
+	// with its own lock; 0 keeps one run per project.
+	Slots int
 }
+
+// MaxSlots bounds Slots: every slot is a full copy of the tree and its build
+// outputs on the host.
+const MaxSlots = 8
 
 // LoadProject reads and validates the project configuration at file.
 func LoadProject(file string) (*Project, error) {
@@ -66,6 +74,8 @@ func ParseProject(name string, data []byte) (*Project, error) {
 			proj.Artifacts, err = p.paths(v, "artifacts")
 		case "exclude":
 			proj.Exclude, err = p.paths(v, "exclude")
+		case "slots":
+			proj.Slots, err = p.slots(v)
 		default:
 			return false, nil
 		}
@@ -111,6 +121,21 @@ func (p *parser) rules(n *yaml.Node, what string) ([][]string, error) {
 		out = append(out, rule)
 	}
 	return out, nil
+}
+
+func (p *parser) slots(n *yaml.Node) (int, error) {
+	if isNull(n) {
+		return 0, nil
+	}
+	s, err := p.scalar(n, "slots")
+	if err != nil {
+		return 0, err
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil || v < 0 || v > MaxSlots {
+		return 0, p.errf(n, "slots must be a whole number from 0 to %d", MaxSlots)
+	}
+	return v, nil
 }
 
 func (p *parser) envNames(n *yaml.Node) ([]string, error) {

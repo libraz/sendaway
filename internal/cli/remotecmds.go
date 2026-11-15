@@ -76,7 +76,7 @@ func forgetCmd(args []string, _ io.Writer, stderr *os.File) int {
 	if code := finish(run.Forget(t.params(proj, stderr))); code != 0 {
 		return code
 	}
-	_, _ = fmt.Fprintf(stderr, "[sendaway] %s: removed %s and its state\n", t.host, proj.root)
+	_, _ = fmt.Fprintf(stderr, "[sendaway] %s: removed %s and its state\n", t.host, proj.remote)
 	return 0
 }
 
@@ -100,7 +100,7 @@ func shellCmd(args []string) error {
 	if err != nil {
 		return err
 	}
-	argv, err := shellArgv(t.client, proj.root)
+	argv, err := shellArgv(t.client, proj.remote)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,7 +58,8 @@ func (c *conn) cut() {
 }
 
 // pipeTransport serves sessions with an in-process remote.Server over pipes.
-// The host's copy of the root is the root itself, so Push sends nothing.
+// The host's main copy of the root is the root itself, so Push sends nothing
+// there; a slot's copy is another directory and receives the tree.
 type pipeTransport struct {
 	server *remote.Server
 
@@ -109,7 +111,15 @@ func (tr *pipeTransport) Open(ctx context.Context) (*sshx.Session, error) {
 	}, nil
 }
 
-func (tr *pipeTransport) Push(_ context.Context, _ string, excludes []string) (sshx.PushResult, error) {
+func (tr *pipeTransport) Push(ctx context.Context, root, dest string, excludes []string) (sshx.PushResult, error) {
+	if dest != root {
+		if err := os.MkdirAll(dest, 0o700); err != nil {
+			return sshx.PushResult{}, err
+		}
+		if out, err := exec.CommandContext(ctx, "cp", "-R", root+"/.", dest).CombinedOutput(); err != nil {
+			return sshx.PushResult{}, fmt.Errorf("copy to %s: %w: %s", dest, err, out)
+		}
+	}
 	tr.mu.Lock()
 	tr.excludes = append(tr.excludes, excludes)
 	hook, c := tr.onPush, tr.cur
@@ -528,5 +538,64 @@ func TestLostBeforePushed(t *testing.T) {
 	}
 	if meta.Code != ExitFailure || meta.Error != "connection lost during sync — nothing ran" {
 		t.Fatalf("meta = %+v", meta)
+	}
+}
+
+// TestSlotRunsBesideMainCopy holds the main copy's run open until a run in a
+// slot has finished, which one lock per project would never allow.
+func TestSlotRunsBesideMainCopy(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	started, release := filepath.Join(dir, "started"), filepath.Join(dir, "release")
+	slotRoot := f.root + ".slot-1"
+
+	mainErr := tempFile(t, "main")
+	done := make(chan Outcome, 1)
+	go func() {
+		done <- f.runRemote(mainErr, mainErr, nil, "sh", "-c",
+			"touch "+started+"; while [ ! -e "+release+" ]; do sleep 0.05; done")
+	}()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if _, err := os.Stat(started); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the main copy's run never started:\n%s", readAll(t, mainErr))
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	slotErr := tempFile(t, "slot")
+	slotOut := tempFile(t, "slot-out")
+	o := Exec(ExecParams{
+		Params: Params{
+			Root: f.root, Remote: slotRoot, Slot: 1, Host: testHost, Version: "test", Stderr: slotErr,
+			Transport: &pipeTransport{server: f.tr.server},
+		},
+		Project:  &config.Project{},
+		Argv:     []string{"sh", "-c", "pwd; cat a.txt; touch " + release},
+		Cwd:      f.root,
+		StateDir: f.state,
+		Environ:  os.Environ(),
+		Home:     f.home,
+		Stdout:   slotOut,
+	})
+	if o != (Outcome{}) {
+		t.Fatalf("slot run outcome = %+v\n%s", o, readAll(t, slotErr))
+	}
+	if got, want := readAll(t, slotOut), slotRoot+"\na\n"; got != want {
+		t.Errorf("slot run output = %q, want %q", got, want)
+	}
+	if got := readAll(t, slotErr); strings.Count(got, testHost+" slot 1 ") != 2 {
+		t.Errorf("start and closing lines must name the slot:\n%s", got)
+	}
+	select {
+	case o := <-done:
+		if o != (Outcome{}) {
+			t.Errorf("main run outcome = %+v\n%s", o, readAll(t, mainErr))
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the main copy's run did not finish after the slot run released it")
 	}
 }

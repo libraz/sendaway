@@ -34,6 +34,7 @@ type Meta struct {
 	Argv        []string `json:"argv"`
 	Cwd         string   `json:"cwd"`
 	Root        string   `json:"root"`
+	Slot        int      `json:"slot,omitempty"`
 	Host        string   `json:"host"`
 	StartUnixMS int64    `json:"start_unix_ms"`
 	DurationMS  int64    `json:"duration_ms"`

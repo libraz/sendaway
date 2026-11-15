@@ -6,7 +6,7 @@ import (
 	"github.com/libraz/sendaway/internal/proto"
 )
 
-// Fetch brings the root-relative paths from the host's copy of p.Root into
+// Fetch brings the root-relative paths from the host's copy of the project into
 // dest, applying the same checks as pull.
 func Fetch(p Params, paths []string, dest string) Outcome {
 	con := newConsole(p.Stderr, p.Stderr)
@@ -23,7 +23,7 @@ func Fetch(p Params, paths []string, dest string) Outcome {
 	if len(ex.Collect) == 0 {
 		return Outcome{}
 	}
-	if err := p.Transport.Pull(in.ctx, p.Root, ex.Collect, dest); err != nil {
+	if err := p.Transport.Pull(in.ctx, p.remoteRoot(), ex.Collect, dest); err != nil {
 		if sig := in.signal(); sig != 0 {
 			return Outcome{Code: 128 + int(sig), Signal: sig}
 		}
@@ -33,7 +33,7 @@ func Fetch(p Params, paths []string, dest string) Outcome {
 	return Outcome{}
 }
 
-// Forget removes the host's copy of p.Root and its remote state.
+// Forget removes the host's copy of the project and its remote state.
 func Forget(p Params) Outcome {
 	con := newConsole(p.Stderr, p.Stderr)
 	in := watchInterrupts()
@@ -55,8 +55,8 @@ func call(p Params, con *console, in *interrupts, req *proto.Request) (*proto.Ex
 		return nil, Outcome{Code: 128 + int(sig), Signal: sig}
 	}
 	req.Protocol = proto.Protocol
-	req.Root = p.Root
-	req.Cwd = p.Root
+	req.Root = p.remoteRoot()
+	req.Cwd = p.remoteRoot()
 	if err := req.Validate(); err != nil {
 		return failed(err.Error())
 	}

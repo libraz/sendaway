@@ -434,3 +434,38 @@ func p50(d []time.Duration) time.Duration {
 	slices.Sort(s)
 	return s[len(s)/2]
 }
+
+func TestSelectSlot(t *testing.T) {
+	tests := []struct {
+		value string
+		slots int
+		want  int
+		err   string
+	}{
+		{"", 0, 0, ""},
+		{"", 2, 0, ""},
+		{"0", 0, 0, ""},
+		{"1", 2, 1, ""},
+		{"2", 2, 2, ""},
+		{"3", 2, 0, "SENDAWAY_SLOT=3 is not enabled: slots is 2 in .sendaway.yml"},
+		{"1", 0, 0, "SENDAWAY_SLOT=1 is not enabled: slots is 0 in .sendaway.yml"},
+		{"-1", 2, 0, `SENDAWAY_SLOT="-1" is not a slot number`},
+		{"a", 2, 0, `SENDAWAY_SLOT="a" is not a slot number`},
+	}
+	for _, tt := range tests {
+		got, err := selectSlot(tt.value, tt.slots)
+		var msg string
+		if err != nil {
+			msg = err.Error()
+		}
+		if got != tt.want || msg != tt.err {
+			t.Errorf("selectSlot(%q, %d) = %d, %q; want %d, %q", tt.value, tt.slots, got, msg, tt.want, tt.err)
+		}
+	}
+	if got := slotRoot("/p/app", 0); got != "/p/app" {
+		t.Errorf("slotRoot 0 = %q", got)
+	}
+	if got := slotRoot("/p/app", 2); got != "/p/app.slot-2" {
+		t.Errorf("slotRoot 2 = %q", got)
+	}
+}

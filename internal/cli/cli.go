@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/libraz/sendaway/internal/config"
@@ -147,6 +148,39 @@ type project struct {
 	root string
 	cwd  string
 	cfg  *config.Project
+	// slot is the slot selected by SENDAWAY_SLOT, 0 for the main copy, and
+	// remote is the root of that copy on the host.
+	slot   int
+	remote string
+}
+
+// slotEnv selects one of the project's slots for this invocation.
+const slotEnv = "SENDAWAY_SLOT"
+
+// selectSlot reads slotEnv against the project's slots: setting. Unset, empty
+// or 0 is the main copy; a slot the project does not enable is an error
+// rather than a silent wait on the main copy's lock.
+func selectSlot(value string, slots int) (int, error) {
+	if value == "" {
+		return 0, nil
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
+		return 0, fmt.Errorf("%s=%q is not a slot number", slotEnv, value)
+	}
+	if n > slots {
+		return 0, fmt.Errorf("%s=%d is not enabled: slots is %d in %s", slotEnv, n, slots, config.ProjectFile)
+	}
+	return n, nil
+}
+
+// slotRoot is the root of slot n's copy on the host: a sibling of root, so
+// that no copy lies inside another.
+func slotRoot(root string, n int) string {
+	if n == 0 {
+		return root
+	}
+	return root + ".slot-" + strconv.Itoa(n)
 }
 
 var errNoProject = errors.New(config.ProjectFile + " not found above the current directory")
@@ -165,7 +199,12 @@ func loadProject(cwd string) (*project, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &project{file: file, root: filepath.Dir(file), cwd: resolved, cfg: cfg}, nil
+	slot, err := selectSlot(os.Getenv(slotEnv), cfg.Slots)
+	if err != nil {
+		return nil, err
+	}
+	root := filepath.Dir(file)
+	return &project{file: file, root: root, cwd: resolved, cfg: cfg, slot: slot, remote: slotRoot(root, slot)}, nil
 }
 
 // target is the host a project's commands run on, with its transport.
@@ -201,7 +240,7 @@ func resolveTarget(root string) (*target, error) {
 }
 
 func (t *target) params(p *project, stderr *os.File) run.Params {
-	return run.Params{Root: p.root, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client, MinFree: t.user.MinFree}
+	return run.Params{Root: p.root, Remote: p.remote, Slot: p.slot, Host: t.host, Version: version(), Stderr: stderr, Transport: t.client, MinFree: t.user.MinFree}
 }
 
 func joinWords(words []string) string { return "[" + strings.Join(words, ", ") + "]" }

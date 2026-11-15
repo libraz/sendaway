@@ -72,7 +72,7 @@ func TestSSHArgs(t *testing.T) {
 	}
 
 	root := "/Users/me/it's"
-	body := bodyPushArgs("SHELL", "h", root)
+	body := bodyPushArgs("SHELL", "h", root, root)
 	wantBody := []string{
 		"-rlpt", "-s", "-8", "--exclude=/.git", "-0", "--exclude-from=-",
 		"-e", "SHELL", `--rsync-path=mkdir -p '/Users/me/it'"'"'s' && rsync`, "--out-format=%n",
@@ -81,7 +81,14 @@ func TestSSHArgs(t *testing.T) {
 	if !reflect.DeepEqual(body, wantBody) {
 		t.Errorf("body args:\n got %q\nwant %q", body, wantBody)
 	}
-	git := gitPushArgs("SHELL", "h", "/r")
+	slot := bodyPushArgs("SHELL", "h", "/r", "/r.slot-1")
+	if slot[len(slot)-2] != "/r/" || slot[len(slot)-1] != "h:/r.slot-1/" || !contains(slot, `--rsync-path=mkdir -p '/r.slot-1' && rsync`) {
+		t.Errorf("body args to another destination: %q", slot)
+	}
+	if g := gitPushArgs("SHELL", "h", "/r", "/r.slot-1"); g[len(g)-2] != "/r/.git/" || g[len(g)-1] != "h:/r.slot-1/.git/" {
+		t.Errorf("git args to another destination: %q", g)
+	}
+	git := gitPushArgs("SHELL", "h", "/r", "/r")
 	if git[len(git)-2] != "/r/.git/" || git[len(git)-1] != "h:/r/.git/" || !contains(git, "--delete") || !contains(git, "--exclude=/objects/tmp_*") {
 		t.Errorf("git args: %q", git)
 	}

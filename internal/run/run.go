@@ -41,9 +41,9 @@ const ExitFailure = 125
 type Transport interface {
 	// Open starts `sendaway remote-exec` on the host.
 	Open(ctx context.Context) (*sshx.Session, error)
-	// Push syncs root to the same path on the host, skipping the anchored,
-	// unescaped exclude entries.
-	Push(ctx context.Context, root string, excludes []string) (sshx.PushResult, error)
+	// Push syncs root to dest on the host, skipping the anchored, unescaped
+	// exclude entries.
+	Push(ctx context.Context, root, dest string, excludes []string) (sshx.PushResult, error)
 	// Pull copies root-relative files from the host's root into dest.
 	Pull(ctx context.Context, root string, files []string, dest string) error
 }
@@ -65,6 +65,11 @@ type Outcome struct {
 type Params struct {
 	// Root is the symlink-resolved repository root.
 	Root string
+	// Remote is the root of the copy on the host; empty means Root. A slot
+	// names a sibling path, so its lock, tree and build outputs are its own.
+	Remote string
+	// Slot is the slot Remote belongs to, 0 for the project's main copy.
+	Slot int
 	// Host is the ssh alias shown in sendaway's lines.
 	Host string
 	// Version is the local sendaway version, shown on a protocol mismatch.
@@ -89,6 +94,14 @@ type ExecParams struct {
 	Environ []string
 	Home    string
 	Stdout  *os.File
+}
+
+// remoteRoot is the root of the copy on the host.
+func (p Params) remoteRoot() string {
+	if p.Remote == "" {
+		return p.Root
+	}
+	return p.Remote
 }
 
 // DieBySignal ends the process by sig with its default disposition. If sig
@@ -148,7 +161,7 @@ func (x *execution) run() Outcome {
 	}
 	x.rec = rec
 	x.con.setLog(rec.Log)
-	x.meta = runlog.Meta{Argv: p.Argv, Cwd: p.Cwd, Root: p.Root, Host: p.Host, StartUnixMS: x.start.UnixMilli()}
+	x.meta = runlog.Meta{Argv: p.Argv, Cwd: p.Cwd, Root: p.Root, Slot: p.Slot, Host: p.Host, StartUnixMS: x.start.UnixMilli()}
 
 	l, err := x.lock()
 	if err != nil {
@@ -174,13 +187,13 @@ func (x *execution) run() Outcome {
 	return x.remote(pl, req)
 }
 
-// lock takes the per-repository local lock, printing a line while it waits.
+// lock takes the local lock of the host copy, printing a line while it waits.
 func (x *execution) lock() (*lock.Lock, error) {
 	dir := filepath.Join(x.p.StateDir, "locks")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	sum := sha256.Sum256([]byte(x.p.Root))
+	sum := sha256.Sum256([]byte(x.p.remoteRoot()))
 	name := filepath.Join(dir, hex.EncodeToString(sum[:])[:16]+".lock")
 	holder, _ := json.Marshal(localHolder{Argv: x.p.Argv, StartedUnixMs: x.start.UnixMilli(), Run: x.rec.ID})
 	return lock.Acquire(x.in.ctx, name, holder, func(cur []byte) {
@@ -204,8 +217,8 @@ func (x *execution) request(pl *plan) *proto.Request {
 		Protocol:    proto.Protocol,
 		Op:          proto.OpExec,
 		Run:         x.rec.ID,
-		Root:        x.p.Root,
-		Cwd:         x.p.Cwd,
+		Root:        x.p.remoteRoot(),
+		Cwd:         x.p.remoteRoot() + strings.TrimPrefix(x.p.Cwd, x.p.Root),
 		Argv:        x.p.Argv,
 		Env:         envfilter.Select(x.p.Environ, x.p.Home, proj.Env).Env,
 		Manifest:    pl.send,
@@ -258,7 +271,7 @@ func (x *execution) remote(pl *plan, req *proto.Request) Outcome {
 	pushed := make(chan pushDone, 1)
 	syncStart := time.Now()
 	go func() {
-		res, err := x.p.Transport.Push(pushCtx, x.p.Root, pl.excludes)
+		res, err := x.p.Transport.Push(pushCtx, x.p.Root, x.p.remoteRoot(), pl.excludes)
 		pushed <- pushDone{res, err}
 	}()
 	var pr pushDone
@@ -302,9 +315,18 @@ func (x *execution) remote(pl *plan, req *proto.Request) Outcome {
 	return x.complete(e.exit)
 }
 
+// hostLabel is the host as shown in the start and closing lines, with the
+// slot when the run is not in the main copy.
+func (x *execution) hostLabel() string {
+	if x.p.Slot == 0 {
+		return x.p.Host
+	}
+	return fmt.Sprintf("%s slot %d", x.p.Host, x.p.Slot)
+}
+
 // startLines prints the start line and the lines that follow it.
 func (x *execution) startLines(s *session, pl *plan, res sshx.PushResult, syncTime time.Duration) {
-	x.con.line(fmt.Sprintf("%s %s-%s · sync %.2fs", x.p.Host, s.hello.OS, s.hello.Arch, syncTime.Seconds()))
+	x.con.line(fmt.Sprintf("%s %s-%s · sync %.2fs", x.hostLabel(), s.hello.OS, s.hello.Arch, syncTime.Seconds()))
 	if res.Vanished {
 		x.con.line("some files vanished during sync")
 	}
@@ -362,7 +384,7 @@ func (x *execution) collect(ex *proto.Exit) string {
 		if err := checkDest(x.p.Root, ex.Collect); err != nil {
 			return err.Error()
 		}
-		if err := x.p.Transport.Pull(x.in.ctx, x.p.Root, ex.Collect, x.p.Root); err != nil {
+		if err := x.p.Transport.Pull(x.in.ctx, x.p.remoteRoot(), ex.Collect, x.p.Root); err != nil {
 			return "pull failed: " + err.Error()
 		}
 		return ""
@@ -371,7 +393,7 @@ func (x *execution) collect(ex *proto.Exit) string {
 		x.con.line("artifacts not collected: " + rejectedList(ex.Rejected))
 	}
 	if len(ex.Collect) > 0 {
-		if err := x.p.Transport.Pull(x.in.ctx, x.p.Root, ex.Collect, x.rec.ArtifactsDir()); err != nil {
+		if err := x.p.Transport.Pull(x.in.ctx, x.p.remoteRoot(), ex.Collect, x.rec.ArtifactsDir()); err != nil {
 			x.con.line("artifacts not collected: " + err.Error())
 		}
 	}
@@ -393,7 +415,7 @@ func (x *execution) trailer(code, sig int) {
 		status = fmt.Sprintf("killed by signal %d", sig)
 	}
 	x.con.line(fmt.Sprintf("%s %s · %.1fs · run %s · log %s",
-		x.p.Host, status, time.Since(x.start).Seconds(), x.rec.ID, x.rec.Log.Name()))
+		x.hostLabel(), status, time.Since(x.start).Seconds(), x.rec.ID, x.rec.Log.Name()))
 }
 
 // interrupted ends a run the shim was told to stop.
