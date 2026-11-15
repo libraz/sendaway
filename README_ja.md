@@ -113,7 +113,7 @@ RTK のようにコマンドの出力を書き換えるフィルタを使って�
 - Windows のワークステーションには対応していません。shim が Unix のファイルロック、プロセスグループ、シグナルに依存しているためです。
 - ホストには資格情報を置きません。秘密ファイルや無視対象のファイルを要するテストは `sendaway local` で手元で実行します。
 
-ほかの制限（同じプロジェクトでは同時に 1 回だけ実行、`setsid` したプロセスは後始末の対象外、`MAKEFLAGS` の転送）は [FAQ とトラブルシューティング](https://github.com/libraz/sendaway/blob/main/docs/ja/faq.md#制限事項) にあります。
+ほかの制限（`slots` を設定しない限り同じプロジェクトでは同時に 1 回だけ実行、`setsid` したプロセスは後始末の対象外、`MAKEFLAGS` の転送）は [FAQ とトラブルシューティング](https://github.com/libraz/sendaway/blob/main/docs/ja/faq.md#制限事項) にあります。
 
 ## ライセンス
 

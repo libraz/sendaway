@@ -18,7 +18,7 @@ Terms used across these pages, in alphabetical order. Each entry links to the pa
 
 **ignored set** — Untracked paths git ignores. They are never sent, and the host's copies of them are left alone, so build directories survive between runs. [How it works](how-it-works.md#3-file-sets)
 
-**local lock** — A per-project lock on the workstation that lets one run per project proceed at a time. Waiting prints `waiting for lock (held by: …)`. The host keeps its own **remote lock** for the same project. [How it works](how-it-works.md#2-preconditions)
+**local lock** — A lock on the workstation per copy of the project on the host, which lets one run per copy proceed at a time. Waiting prints `waiting for lock (held by: …)`. The host keeps its own **remote lock** for the same project. [How it works](how-it-works.md#2-preconditions)
 
 **manifest** — The sorted list of files git tracks or does not ignore, minus the secret set. It is what the push sends, and the host keeps it as its record of the last push. [How it works](how-it-works.md#3-file-sets)
 
@@ -30,7 +30,7 @@ Terms used across these pages, in alphabetical order. Each entry links to the pa
 
 **project configuration** — `.sendaway.yml` at the git top level. It says which commands run remotely and what travels with them. [Configuration](configuration.md#project-configuration)
 
-**project root** — The directory holding `.sendaway.yml`, which must also be the git top level. It is synced to the same absolute path on the host. [Configuration](configuration.md#finding-the-file)
+**project root** — The directory holding `.sendaway.yml`, which must also be the git top level. It is synced to the same absolute path on the host, or to `<root>.slot-<n>` for a slot. [Configuration](configuration.md#finding-the-file)
 
 **protocol** — The version of the framed protocol between the shim and `remote-exec`. Both ends must report the same number in `sendaway version`. [Command reference](cli.md#version)
 
@@ -53,6 +53,8 @@ Terms used across these pages, in alphabetical order. Each entry links to the pa
 **secret set** — Manifest files withheld by the secret name rules, by a token found in `.npmrc` or `.yarnrc.yml`, or by `exclude:`. They are listed in `not sent (secret-like)`. [Security](security.md#secret-files)
 
 **shim** — A link to the `sendaway` binary under the name of a command (`make`, `go`, `yarn`). Under any name other than `sendaway`, the binary acts as a shim for that name. [Getting started](getting-started.md#6-install-the-shims)
+
+**slot** — An extra copy of the project on the host at `<root>.slot-<n>`, with its own lock, tree and build outputs, enabled by `slots:` and chosen with `SENDAWAY_SLOT`. [Configuration](configuration.md#slots)
 
 **start line** — The first `[sendaway]` line of a run, printed once the push is done: `[sendaway] build01 linux-amd64 · sync 0.42s`. [Output and exit codes](output-and-exit-codes.md#lines-of-a-normal-run)
 

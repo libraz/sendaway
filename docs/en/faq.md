@@ -6,7 +6,7 @@
 - Interactive and tty commands are not supported. The remote command has no terminal and reads `/dev/null`.
 - Git submodules, nested repositories, git worktrees and file names not stored in NFC are not supported and fail with exit 125 where detected.
 - A process that calls `setsid` itself leaves the command's process group and is not stopped on interruption.
-- One run per project at a time. Others wait for the lock.
+- One run per project at a time, unless the project enables [`slots`](configuration.md#slots). Others wait for the lock.
 - sendaway does not authenticate to private package registries, and does not send tokens in `.npmrc` or `.yarnrc.yml`.
 - The synced tree is the working tree as of the start of the run. Files created on the host by the command stay there (ignored build directories survive between runs) but do not return unless listed in `pull:` or `artifacts:`.
 

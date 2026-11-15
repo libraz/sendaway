@@ -18,7 +18,7 @@ The real binary is found by searching PATH while skipping the shim directory. `s
 
 Before anything is sent, the shim checks the project root: `.sendaway.yml` must sit at the git top level, and `.git` must be a directory (git worktrees are refused). It then creates the run record directory, so even a failed run can be inspected.
 
-The shim takes a per-project local lock (keyed by the root path). While another run in the same project holds it, the shim prints `waiting for lock (held by: <argv>, <time>, run <id>)` and waits. The lock is released when the holding process ends, however it ends.
+The shim takes a local lock per copy of the project on the host (keyed by the copy's root path, so each [slot](configuration.md#slots) has its own). While another run in the same copy holds it, the shim prints `waiting for lock (held by: <argv>, <time>, run <id>)` and waits. The lock is released when the holding process ends, however it ends.
 
 ## 3. File sets
 

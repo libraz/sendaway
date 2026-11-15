@@ -110,6 +110,20 @@ exclude: [fixtures/private, docs/large.pdf]
 - A path is cleaned (`./a//b/` becomes `a/b`) and must be relative, free of `..`, and not the root itself. Violations are reported as `empty path`, `absolute path "<path>" is outside the project root`, `path "<path>" contains ".." and leaves the project root` or `path "<path>" names the project root itself`.
 - Excluded tracked files that exist locally are listed in the `not sent (secret-like)` line, and are removed from the host if a previous run sent them.
 
+### `slots`
+
+`slots` lets several runs of one project be in progress at once. It is off by default: one run per project, others wait for the lock.
+
+```yaml
+slots: 2
+```
+
+- `slots: N` enables slots 1 to N (at most 8) beside the project's main copy. A slot is a second copy of the project on the host, at `<root>.slot-<n>`, with its own lock, tree and build outputs.
+- An invocation picks a slot with the `SENDAWAY_SLOT` environment variable: `SENDAWAY_SLOT=1 make test`. Unset, empty or `0` is the main copy. The variable applies to shims, `run`, `fetch`, `shell` and `forget` alike, so `SENDAWAY_SLOT=1 sendaway fetch <path>` reads the slot's copy.
+- A slot the project does not enable fails with `SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` and exit 125.
+- Runs in the same slot still wait for each other. The start and closing lines name the slot: `build01 slot 1 linux-amd64 · sync 0.42s`.
+- The first run in a slot sends the whole tree and builds from scratch; later runs there are incremental. Each slot uses as much disk as the main copy, and idle slots are evicted like any other copy when `min_free` is short.
+
 The same path rules apply to `pull`, `artifacts` and `when`.
 
 ## User configuration

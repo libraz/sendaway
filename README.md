@@ -113,7 +113,7 @@ The documentation lives in [`docs/`](https://github.com/libraz/sendaway/tree/mai
 - Windows is not supported as a workstation. The shim relies on Unix file locks, process groups and signals.
 - The host holds no credentials. Tests that need secret or ignored files run locally with `sendaway local`.
 
-The other limits (one run per project at a time, `setsid` escaping cleanup, forwarded `MAKEFLAGS`) are listed in [FAQ and troubleshooting](https://github.com/libraz/sendaway/blob/main/docs/en/faq.md#limitations).
+The other limits (one run per project at a time unless `slots` is set, `setsid` escaping cleanup, forwarded `MAKEFLAGS`) are listed in [FAQ and troubleshooting](https://github.com/libraz/sendaway/blob/main/docs/en/faq.md#limitations).
 
 ## License
 

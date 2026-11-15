@@ -110,6 +110,20 @@ exclude: [fixtures/private, docs/large.pdf]
 - パスは正規化され（`./a//b/` は `a/b` になります）、相対パスで、`..` を含まず、ルート自身でない必要があります。違反は `empty path`、`absolute path "<path>" is outside the project root`、`path "<path>" contains ".." and leaves the project root`、`path "<path>" names the project root itself` として報告されます。
 - ローカルに存在する、追跡されている除外ファイルは `not sent (secret-like)` の行に列挙され、前回の実行で送られていた場合はホストから削除されます。
 
+### `slots`
+
+`slots` は、1 つのプロジェクトで複数の実行を同時に進められるようにします。既定では無効で、プロジェクトごとに 1 回だけ実行でき、ほかの実行はロックを待ちます。
+
+```yaml
+slots: 2
+```
+
+- `slots: N` は、プロジェクトの主コピーに加えて、スロット 1 から N（最大 8）を有効にします。スロットは、ホスト上の `<root>.slot-<n>` に置かれる、プロジェクトのもう 1 つのコピーです。ロック、ツリー、ビルド出力を、それぞれ独自に持ちます。
+- 実行ごとに、環境変数 `SENDAWAY_SLOT` でスロットを選びます。例: `SENDAWAY_SLOT=1 make test`。未設定、空、`0` は主コピーです。この変数は、shim、`run`、`fetch`、`shell`、`forget` のすべてに効きます。`SENDAWAY_SLOT=1 sendaway fetch <path>` は、スロットのコピーから読みます。
+- プロジェクトが有効にしていないスロットを選ぶと、`SENDAWAY_SLOT=<n> is not enabled: slots is <N> in .sendaway.yml` で失敗し、終了コードは 125 です。
+- 同じスロットの実行どうしは、これまでどおり互いを待ちます。開始行と終了行には、スロットが表示されます。例: `build01 slot 1 linux-amd64 · sync 0.42s`。
+- スロットでの最初の実行は、ツリー全体を送り、最初からビルドします。以後の実行は差分です。各スロットは、主コピーと同じだけディスクを使います。使われていないスロットは、`min_free` が足りないとき、ほかのコピーと同じように削除されます。
+
 `pull`、`artifacts`、`when` にも同じパスの規則が適用されます。
 
 ## ユーザー設定
